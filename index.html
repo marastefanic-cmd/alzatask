@@ -647,7 +647,6 @@ function clamp(k, v){
 
 function setVal(k, v, opt = {}){
   S[k] = clamp(k, v);
-  clearPresetHighlight();
   syncField(k, opt);
   update();
 }
@@ -665,13 +664,17 @@ function syncField(k, opt = {}){
 
 function syncAllFields(){ Object.keys(FIELDS).forEach(k => syncField(k)); }
 
-function clearPresetHighlight(){
-  document.querySelectorAll('.preset').forEach(b => b.setAttribute('aria-pressed', 'false'));
+function syncPresetHighlight(){
+  let matched = null;
+  for (const [key, p] of Object.entries(PRESETS)){
+    if (Object.keys(FIELDS).every(k => S[k] === p[k])){ matched = key; break; }
+  }
+  document.querySelectorAll('.preset').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.preset === matched)));
 }
 
 function applyPreset(key){
   S = {...PRESETS[key]};
-  document.querySelectorAll('.preset').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.preset === key)));
   syncAllFields();
   update();
 }
@@ -890,23 +893,34 @@ function shareUrl(){
 }
 function readUrl(){
   const q = new URLSearchParams(location.search);
-  let any = false;
   for (const [k, sk] of Object.entries(URL_KEYS)){
     if (q.has(sk)){
       const v = parseFloat(String(q.get(sk)).replace(',', '.'));
-      if (!isNaN(v)){ S[k] = clamp(k, v); any = true; }
+      if (!isNaN(v)) S[k] = clamp(k, v);
     }
   }
-  if (any) clearPresetHighlight();
 }
-let urlTimer;
-function pushUrl(){
-  clearTimeout(urlTimer);
-  urlTimer = setTimeout(() => {
-    const p = new URLSearchParams();
-    for (const [k, sk] of Object.entries(URL_KEYS)) p.set(sk, String(S[k]));
-    history.replaceState(null, '', location.pathname + '?' + p.toString());
+
+/* State survives a refresh via localStorage; the address bar is never touched.
+   A prefilled link (query params) always wins over the stored state. */
+const STORE_KEY = 'alzabox-kalkulator-v1';
+let saveTimer;
+function saveState(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(_){}
   }, 350);
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    for (const k of Object.keys(FIELDS)){
+      const v = parseFloat(obj[k]);
+      if (!isNaN(v)) S[k] = clamp(k, v);
+    }
+  }catch(_){}
 }
 
 /* ================= tooltip & toast ================= */
@@ -993,6 +1007,7 @@ function update(){
     ? `Po odečtení jednorázových nákladů ${money(S.integration)} na zapojení`
     : 'Čistý přínos bez jednorázových nákladů';
 
+  syncPresetHighlight();
   chartCost(r);
   chartCum(r);
   renderBreakdown(r);
@@ -1005,7 +1020,7 @@ function update(){
     `AlzaBox ${money(S.boxShip)} + ${nf1.format(S.boxMin)} min · adopce ${nf0.format(S.adoption)} % · růst objednávek +${nf1.format(S.uplift)} % · ` +
     `zapojení ${money(S.integration)} · vygenerováno ${new Date().toLocaleDateString('cs-CZ')} · hodnoty jsou modelové`;
 
-  pushUrl();
+  saveState();
 }
 
 /* ================= theme ================= */
@@ -1021,6 +1036,7 @@ function initTheme(){
 
 /* ================= boot ================= */
 buildFields();
+loadState();
 readUrl();
 syncAllFields();
 initTheme();
