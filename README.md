@@ -4,8 +4,8 @@ Interaktivní prototyp pro obchodní jednání s e-shopy, které zvažují zapoj
 dopravní služby **Pošli to AlzaBoxem**. Vznikl jako řešení case study pro roli
 Key Account Managera.
 
-**Živá aplikace:** <https://marastefanic-cmd.github.io/alzatask/>
-(případně otevřete `index.html` přímo v prohlížeči – funguje i offline).
+**Živá aplikace:** otevřete `index.html` v prohlížeči, nebo použijte nasazenou
+verzi na GitHub Pages (odkaz v popisu repozitáře).
 
 ---
 
@@ -32,7 +32,13 @@ vždy silnější slibovat méně a doručit více.
 
 ## 2. Jaké faktory ovlivňují rozhodnutí e-shopu
 
-Kalkulátor je má přímo jako vstupní parametry, aby se o nich dalo mluvit:
+Kalkulátor je má přímo jako vstupní parametry, aby se o nich dalo mluvit.
+Aby jednání nezačínalo od prázdných kolonek (a čísla nevznikala „na místě“),
+obsahuje nástroj **10 modelových scénářů** – podle velikosti (malý/střední/velký)
+i podle segmentu (móda, elektro, kosmetika, knihy, sport, dětské zboží,
+chovatelské potřeby). Každý scénář má přiznané zdůvodnění svých výchozích
+hodnot a srovnávací tabulka ukazuje, jak služba vychází napříč segmenty –
+včetně segmentu, kde je přínos omezený (těžké zboží).
 
 | Faktor | Kde v nástroji |
 |---|---|
@@ -83,8 +89,9 @@ Celý prototyp vznikl ve spolupráci s AI (Claude), workflow „AI jako tým“:
 
 ## 5. Použití v reálném obchodním jednání
 
-- **Před schůzkou:** předvyplním čísla partnera (z veřejných dat či dotazníku)
-  a pošlu mu odkaz — parametry se nesou v URL, nic se nikam neodesílá.
+- **Před schůzkou:** vyberu modelový scénář segmentu partnera a předvyplním
+  jeho čísla (z veřejných dat či dotazníku); prefilled odkaz mu pošlu předem —
+  parametry se nesou v URL, nic se nikam neodesílá.
 - **Na schůzce:** živé modelování scénářů („a co když adopce jen 20 %?“),
   citlivostní tabulka jako pojistka proti námitkám.
 - **Po schůzce:** tlačítko *Vytisknout shrnutí* vygeneruje jednostránkový

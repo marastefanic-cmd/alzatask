@@ -115,12 +115,16 @@ aside .panel{position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:
 @media (max-width:960px){ aside .panel{position:static; max-height:none} }
 .panel-h{padding:16px 18px 12px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; justify-content:space-between; gap:8px}
 .panel-h h2{font-size:15px; font-weight:700}
-.presets{display:flex; gap:6px; flex-wrap:wrap; padding:12px 18px 2px}
+.scen{padding:12px 18px 0}
+.scen label{display:block; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.scen select{
+  width:100%; border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
+  border-radius:var(--r-s); padding:8px 10px; font:600 13.5px/1.3 inherit; cursor:pointer;
+}
 .chip{
   border:1px solid var(--line-2); background:var(--surface); color:var(--ink-2);
   border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:600;
 }
-.chip[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
 #resetBtn{border:none; background:none; color:var(--muted); font-size:12.5px; font-weight:600; text-decoration:underline; text-underline-offset:2px; padding:4px 2px; cursor:pointer}
 #resetBtn:hover{color:var(--ink-2)}
 @media (pointer:coarse){
@@ -205,6 +209,14 @@ table.sens{border-collapse:separate; border-spacing:0; width:100%; font-size:13.
 .sens td{font-variant-numeric:tabular-nums; font-weight:600}
 .sens td.hot{outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px}
 .sens-note{font-size:12.5px; color:var(--muted); margin-top:10px}
+.scomp thead th:first-child{text-align:left}
+.scomp tr.cur th,.scomp tr.cur td{background:var(--accent-soft)}
+.scomp .userow{
+  border:none; background:none; padding:2px 4px; color:var(--accent); font:600 12.5px/1.3 inherit;
+  cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+}
+.scomp .userow:hover{color:var(--accent-strong)}
+.scomp tbody th small{display:block; font-weight:400; color:var(--muted); font-size:11px}
 
 /* arguments */
 .args{display:grid; grid-template-columns:1fr 1fr; gap:12px}
@@ -357,10 +369,10 @@ footer.foot .wrap{display:flex; gap:14px; flex-wrap:wrap; justify-content:space-
         <h2>Vstupy pro výpočet</h2>
         <button id="resetBtn" title="Vrátit výchozí hodnoty">Reset</button>
       </div>
-      <div class="presets" role="group" aria-label="Modelové scénáře – vyberte jeden">
-        <button class="chip preset" data-preset="s" aria-pressed="false">Malý e-shop</button>
-        <button class="chip preset" data-preset="m" aria-pressed="true">Střední e-shop</button>
-        <button class="chip preset" data-preset="l" aria-pressed="false">Velký e-shop</button>
+      <div class="scen">
+        <label for="scenarioSel">Modelový scénář</label>
+        <select id="scenarioSel"></select>
+        <p class="hint" id="scenarioNote"></p>
       </div>
       <form id="form">
         <fieldset>
@@ -434,6 +446,19 @@ footer.foot .wrap{display:flex; gap:14px; flex-wrap:wrap; justify-content:space-
         <p class="sub">Tři nezávislé zdroje hodnoty – každý si můžete obhájit zvlášť</p>
       </div>
       <div class="card-b" id="breakdown"></div>
+    </div>
+
+    <div class="card no-print">
+      <div class="card-h">
+        <h3>Srovnání modelových scénářů</h3>
+        <p class="sub">Výchozí čísla deseti typových e-shopů s přiznaným zdůvodněním – jednání nezačíná od prázdných kolonek</p>
+      </div>
+      <div class="card-b">
+        <div style="overflow-x:auto">
+          <table class="sens scomp" id="scompTable"></table>
+        </div>
+        <p class="sens-note">Přínos v 1. roce po odečtení jednorázových nákladů na zapojení. Kliknutím na <em>Použít</em> scénář načtete a v jednání doladíte podle skutečnosti partnera.</p>
+      </div>
     </div>
 
     <div class="card">
@@ -515,7 +540,8 @@ footer.foot .wrap{display:flex; gap:14px; flex-wrap:wrap; justify-content:space-
       </ul>
       <h4>Jak s nástrojem pracovat v jednání</h4>
       <ul>
-        <li>Nechte partnera diktovat vlastní čísla – kalkulačka je přepočítá okamžitě, takže výsledek je „jeho“, ne váš.</li>
+        <li>Nezačínejte od nuly – vyberte modelový scénář nejbližší segmentu partnera. Výchozí čísla jsou modelová a jejich logika je u scénáře přiznaná; v jednání je jen dolaďujete.</li>
+        <li>Nechte partnera opravit, co je jinak – kalkulačka čísla přepočítá okamžitě, takže výsledek je „jeho“, ne váš.</li>
         <li>Citlivostní tabulka odpovídá na námitku „a co když to bude méně?“ ještě dřív, než zazní.</li>
         <li>Tlačítkem <em>Zkopírovat odkaz</em> pošlete partnerovi kalkulačku předvyplněnou jeho čísly, <em>Vytisknout shrnutí</em> vygeneruje jednostránkový podklad z jednání.</li>
       </ul>
@@ -562,15 +588,42 @@ const FIELDS = {
   integration: {label:'Jednorázové náklady na zapojení', unit:'Kč', min:0, max:200000, step:5000, dec:0},
 };
 
-const PRESETS = {
-  s: {orders:800,   aov:900,  margin:30, curShip:95, curMin:6,   hourly:320, boxShip:69, boxMin:3,   adoption:30, uplift:4, integration:10000},
-  m: {orders:5000,  aov:1200, margin:25, curShip:89, curMin:5,   hourly:350, boxShip:65, boxMin:3,   adoption:35, uplift:5, integration:25000},
-  l: {orders:30000, aov:1500, margin:22, curShip:79, curMin:4,   hourly:380, boxShip:59, boxMin:2.5, adoption:40, uplift:6, integration:60000},
+const SCENARIOS = {
+  maly: {label:'Malý e-shop', group:'Podle velikosti',
+    note:'Začínající či menší e-shop. Nižší adopce – zákazníky do boxů teprve navyknete; přínos táhne hlavně úspora na dopravě.',
+    v:{orders:800, aov:900, margin:30, curShip:95, curMin:6, hourly:320, boxShip:69, boxMin:3, adoption:30, uplift:4, integration:10000}},
+  stredni: {label:'Střední e-shop', group:'Podle velikosti',
+    note:'Výchozí modelový scénář. Vyvážený mix úspor a růstu; konzervativní adopce podle běžného podílu boxových doprav v checkoutu.',
+    v:{orders:5000, aov:1200, margin:25, curShip:89, curMin:5, hourly:350, boxShip:65, boxMin:3, adoption:35, uplift:5, integration:25000}},
+  velky: {label:'Velký e-shop', group:'Podle velikosti',
+    note:'Zavedený hráč s velkými objemy. I malá úspora na zásilce dělá miliony ročně; vyjednaná cena dopravy už bývá nízká.',
+    v:{orders:30000, aov:1500, margin:22, curShip:79, curMin:4, hourly:380, boxShip:59, boxMin:2.5, adoption:40, uplift:6, integration:60000}},
+  moda: {label:'Móda a obuv', group:'Podle segmentu',
+    note:'Vyšší hrubá marže a publikum zvyklé na výdejní boxy → vyšší adopce i citlivost na rychlost dodání. Vratky model nezapočítává.',
+    v:{orders:6000, aov:1400, margin:48, curShip:85, curMin:5, hourly:350, boxShip:65, boxMin:3, adoption:45, uplift:6, integration:30000}},
+  elektro: {label:'Elektro a příslušenství', group:'Podle segmentu',
+    note:'Nižší procentní marže → přínos táhnou úspory. Velké spotřebiče do boxu nepatří – adopci počítejte jen z drobné elektroniky a příslušenství.',
+    v:{orders:4000, aov:2600, margin:14, curShip:95, curMin:6, hourly:380, boxShip:69, boxMin:3.5, adoption:30, uplift:4, integration:40000}},
+  kosmetika: {label:'Kosmetika a drogerie', group:'Podle segmentu',
+    note:'Malé a lehké zásilky ideální do schránky. Časté opakované nákupy – rychlé doručení zvyšuje frekvenci objednávek.',
+    v:{orders:3500, aov:750, margin:38, curShip:79, curMin:4, hourly:330, boxShip:59, boxMin:2, adoption:45, uplift:7, integration:20000}},
+  knihy: {label:'Knihy a média', group:'Podle segmentu',
+    note:'Rozměrově ideální sortiment a nízká hodnota košíku – o konverzi rozhoduje cena dopravy, kterou box snižuje.',
+    v:{orders:2500, aov:500, margin:30, curShip:75, curMin:3.5, hourly:320, boxShip:55, boxMin:2, adoption:50, uplift:5, integration:15000}},
+  sport: {label:'Sport a outdoor', group:'Podle segmentu',
+    note:'Smíšené rozměry zásilek. Adopci nastavte podle podílu sortimentu, který se do schránky reálně vejde.',
+    v:{orders:3000, aov:1900, margin:32, curShip:89, curMin:5.5, hourly:360, boxShip:69, boxMin:3, adoption:35, uplift:5, integration:30000}},
+  deti: {label:'Dětské zboží a hračky', group:'Podle segmentu',
+    note:'Rodiče nakupují večer a vyzvedávají cestou – boxům to vyhovuje; střední adopce kvůli objemnějším položkám (kočárky apod.).',
+    v:{orders:2800, aov:1100, margin:32, curShip:89, curMin:5, hourly:340, boxShip:65, boxMin:3, adoption:40, uplift:5, integration:20000}},
+  chovatel: {label:'Chovatelské potřeby', group:'Podle segmentu',
+    note:'Těžké pytle krmiva do boxu nepatří – nízká adopce jen na doplňky. Scénář férově ukazuje segment, kde je přínos služby omezený.',
+    v:{orders:5000, aov:900, margin:24, curShip:99, curMin:6, hourly:350, boxShip:75, boxMin:4, adoption:15, uplift:3, integration:25000}},
 };
 
 const URL_KEYS = {orders:'o', aov:'aov', margin:'m', curShip:'cs', curMin:'cm', hourly:'h', boxShip:'bs', boxMin:'bm', adoption:'ad', uplift:'up', integration:'in'};
 
-let S = {...PRESETS.m};
+let S = {...SCENARIOS.stredni.v};
 
 /* ================= formatting ================= */
 const nf0 = new Intl.NumberFormat('cs-CZ', {maximumFractionDigits:0});
@@ -664,19 +717,57 @@ function syncField(k, opt = {}){
 
 function syncAllFields(){ Object.keys(FIELDS).forEach(k => syncField(k)); }
 
-function syncPresetHighlight(){
-  let matched = null;
-  for (const [key, p] of Object.entries(PRESETS)){
-    if (Object.keys(FIELDS).every(k => S[k] === p[k])){ matched = key; break; }
+function buildScenarioSelect(){
+  const sel = document.getElementById('scenarioSel');
+  const groups = {};
+  for (const [key, sc] of Object.entries(SCENARIOS)){
+    (groups[sc.group] = groups[sc.group] || []).push([key, sc]);
   }
-  document.querySelectorAll('.preset').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.preset === matched)));
+  sel.innerHTML = '<option value="custom" hidden>— vlastní nastavení —</option>' +
+    Object.entries(groups).map(([g, items]) =>
+      `<optgroup label="${g}">` +
+      items.map(([key, sc]) => `<option value="${key}">${sc.label}</option>`).join('') +
+      '</optgroup>').join('');
+  sel.addEventListener('change', () => { if (sel.value !== 'custom') applyScenario(sel.value); });
 }
 
-function applyPreset(key){
-  S = {...PRESETS[key]};
+function matchedScenario(){
+  for (const [key, sc] of Object.entries(SCENARIOS)){
+    if (Object.keys(FIELDS).every(k => S[k] === sc.v[k])) return key;
+  }
+  return null;
+}
+
+function syncScenarioSelect(){
+  const mkey = matchedScenario();
+  document.getElementById('scenarioSel').value = mkey || 'custom';
+  document.getElementById('scenarioNote').textContent = mkey
+    ? SCENARIOS[mkey].note
+    : 'Vlastní čísla – ručně upravená nebo načtená z odkazu. Výběrem scénáře začnete od modelových hodnot.';
+  return mkey;
+}
+
+function applyScenario(key){
+  if (!SCENARIOS[key]) return;
+  S = {...SCENARIOS[key].v};
   syncAllFields();
   update();
+}
+
+function renderScenarioTable(currentKey){
+  let html = `<thead><tr><th scope="col">Scénář</th><th scope="col">Obj./měs.</th><th scope="col">Adopce</th><th scope="col">Přínos v 1. roce</th><th scope="col"><span class="sr-only">Akce</span></th></tr></thead><tbody>`;
+  for (const [key, sc] of Object.entries(SCENARIOS)){
+    const r = compute(sc.v);
+    const net = r.annual - sc.v.integration;
+    html += `<tr${key === currentKey ? ' class="cur"' : ''}>
+      <th scope="row">${sc.label}<small>${sc.group === 'Podle velikosti' ? 'obecný' : 'segment'}</small></th>
+      <td class="num">${nf0.format(sc.v.orders)}</td>
+      <td class="num">${nf0.format(sc.v.adoption)} %</td>
+      <td class="num" style="font-weight:700">${moneyShort(net)}</td>
+      <td><button type="button" class="userow" data-scenario="${key}">${key === currentKey ? 'aktivní' : 'Použít'}</button></td>
+    </tr>`;
+  }
+  document.getElementById('scompTable').innerHTML = html + '</tbody>';
 }
 
 /* ================= charts ================= */
@@ -905,12 +996,16 @@ function readUrl(){
    A prefilled link (query params) always wins over the stored state. */
 const STORE_KEY = 'alzabox-kalkulator-v1';
 let saveTimer;
+function saveStateNow(){
+  clearTimeout(saveTimer);
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(_){}
+}
 function saveState(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(_){}
-  }, 350);
+  saveTimer = setTimeout(saveStateNow, 350);
 }
+addEventListener('pagehide', saveStateNow);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveStateNow(); });
 function loadState(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -1007,7 +1102,8 @@ function update(){
     ? `Po odečtení jednorázových nákladů ${money(S.integration)} na zapojení`
     : 'Čistý přínos bez jednorázových nákladů';
 
-  syncPresetHighlight();
+  const scenKey = syncScenarioSelect();
+  renderScenarioTable(scenKey);
   chartCost(r);
   chartCum(r);
   renderBreakdown(r);
@@ -1036,12 +1132,16 @@ function initTheme(){
 
 /* ================= boot ================= */
 buildFields();
+buildScenarioSelect();
 loadState();
 readUrl();
 syncAllFields();
 initTheme();
-document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
-document.getElementById('resetBtn').addEventListener('click', () => applyPreset('m'));
+document.getElementById('scompTable').addEventListener('click', ev => {
+  const btn = ev.target.closest('[data-scenario]');
+  if (btn) applyScenario(btn.dataset.scenario);
+});
+document.getElementById('resetBtn').addEventListener('click', () => applyScenario('stredni'));
 document.getElementById('printBtn').addEventListener('click', () => window.print());
 document.getElementById('mobileKpi').addEventListener('click', () =>
   document.querySelector('.hero').scrollIntoView({behavior:'smooth', block:'start'}));
