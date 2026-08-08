@@ -8,7 +8,9 @@ Once deployed via GitHub Pages, the app is served at the repository's Pages URL.
 
 ## How it works
 
-- **Players** — up to 8, each with a fixed color and meeple for the whole week.
+- **Players** — up to 9, each with a fixed color and meeple for the whole week.
+  The ninth slot is meeple gray: since no ninth hue stays colorblind-safe against
+  the other eight, that player's chart line is dashed and their bar striped instead.
 - **Log a game** — three ways to record a result:
   - *Winner*: tap whoever won (several for team/co-op wins);
   - *Ranking*: tap players in finishing order;

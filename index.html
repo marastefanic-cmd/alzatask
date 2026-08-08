@@ -14,6 +14,7 @@
   --good:#006300; --danger:#d03b3b; --danger-text:#ffffff;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
   --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --s9:#6b6862; /* meeple gray — the 9th slot is a neutral; its line is dashed and bar striped */
   --btn-ink:#0b0b0b; --btn-text:#fcfcfb; --wash:rgba(11,11,11,.05);
 }
 @media (prefers-color-scheme: dark){
@@ -23,7 +24,7 @@
     --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
     --good:#0ca30c; --danger:#e66767; --danger-text:#0d0d0d;
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-    --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --s9:#999488;
     --btn-ink:#f2f1ec; --btn-text:#0d0d0d; --wash:rgba(255,255,255,.07);
   }
 }
@@ -33,7 +34,7 @@
   --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
   --good:#0ca30c; --danger:#e66767; --danger-text:#0d0d0d;
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --s9:#999488;
   --btn-ink:#f2f1ec; --btn-text:#0d0d0d; --wash:rgba(255,255,255,.07);
 }
 
@@ -86,6 +87,8 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .standing .who .sub{font-size:12.5px; color:var(--muted)}
 .standing .bar-track{grid-column:3 / 5; margin-top:6px; height:18px; position:relative}
 .standing .bar{height:18px; border-radius:0 4px 4px 0; background:var(--pc); min-width:2px}
+/* the 9th (gray) player's bar is striped so its identity never rides on hue alone */
+.standing.s9 .bar{background:repeating-linear-gradient(45deg, var(--pc) 0 5px, color-mix(in srgb, var(--pc) 45%, var(--card)) 5px 9px)}
 .standing .pts{font-size:21px; font-weight:650; text-align:right}
 .standing.lead .pts{font-size:24px}
 .standing .pts small{display:block; font-size:11px; font-weight:400; color:var(--muted); margin-top:-2px}
@@ -297,8 +300,8 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
-const MAX_PLAYERS = 8;
-const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'];
+const MAX_PLAYERS = 9;
+const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -573,7 +576,7 @@ function renderStandings(){
   }
   html += rows.map(r => {
     const isLead = leaders.includes(r.p.id);
-    return '<div class="standing' + (isLead ? ' lead' : '') + '" style="--pc:' + slotVar(r.p) + '">' +
+    return '<div class="standing' + (isLead ? ' lead' : '') + (r.p.slot === 8 ? ' s9' : '') + '" style="--pc:' + slotVar(r.p) + '">' +
       '<div class="rank">' + r.rank + '</div>' +
       meeple(r.p, {crown: isLead}) +
       '<div class="who"><div class="nm">' + esc(r.p.name) + '</div>' +
@@ -662,7 +665,8 @@ function renderRace(){
   for(const s of series){
     const c = slotVar(s.p);
     const d = s.pts.map((v,i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
-    g += '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    const dash = s.p.slot === 8 ? ' stroke-dasharray="7 5"' : '';
+    g += '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"' + dash + '/>';
     g += '<circle cx="' + X(N).toFixed(1) + '" cy="' + Y(s.pts[N]).toFixed(1) + '" r="4.5" fill="' + c + '" stroke="var(--card)" stroke-width="2"/>';
   }
   // selective direct label: the current leader only
