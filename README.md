@@ -13,10 +13,11 @@ that phone between openings.
 - **Players** — up to 9, each with a fixed color and meeple for the whole week.
   The ninth slot is meeple gray: since no ninth hue stays colorblind-safe against
   the other eight, that player's chart line is dashed and their bar striped instead.
-- **Log a game** — three ways to record a result: tap the *winner* (several for
-  team/co-op wins), tap players in *finishing order*, or type *scores* (numeric
-  keypad, "lowest score wins" toggle for golf-style games). Any subset of players
-  can join any game.
+- **Log a game** — four ways to record a result: tap the *winner* (several for
+  co-op wins), tap players in *finishing order*, type *scores* (numeric keypad,
+  "lowest score wins" toggle for golf-style games), or play in *teams* — tap
+  players into teams, then tap the teams in finishing order. Any subset of
+  players can join any game.
 - **Scoring** — *beat a player, earn the game's weight in points.* Every game has
   a weight — Light ×1, Standard ×2, Heavy ×3 (remembered per game name) — and a
   match pays each player (players they finished ahead of) × weight. Winning a

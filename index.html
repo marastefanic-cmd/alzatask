@@ -404,7 +404,7 @@ function sanitizeState(o){
         seq: Number.isInteger(m.seq) ? m.seq : 0,
         game: (typeof m.game === 'string' && m.game.trim()) ? m.game.trim().slice(0,60) : 'Game',
         date: (typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) ? m.date : todayStr(),
-        mode: ['winner','ranking','scores'].includes(m.mode) ? m.mode : 'winner',
+        mode: ['winner','ranking','scores','teams'].includes(m.mode) ? m.mode : 'winner',
         lowWins: !!m.lowWins,
         weight: [1,2,3].includes(m.weight) ? m.weight : 2,
         results
@@ -789,9 +789,11 @@ function matchCard(m){
       '<div class="pp">' + (pts > 0 ? '+' + fmtNum(pts) : '·') + '</div>';
   }).join('');
   const w = m.weight || 2;
+  const nTeams = m.mode === 'teams' ? new Set(m.results.map(r => r.rank)).size : 0;
   return '<div class="card match">' +
     '<div class="m-top"><h3>' + esc(m.game) + '</h3>' +
-      '<span class="m-meta">' + P + ' players' + (w !== 2 ? ' · ' + WEIGHT_LABELS[w].toLowerCase() + ' ×' + w : '') +
+      '<span class="m-meta">' + P + ' players' + (nTeams ? ' · ' + nTeams + ' teams' : '') +
+      (w !== 2 ? ' · ' + WEIGHT_LABELS[w].toLowerCase() + ' ×' + w : '') +
       (m.mode === 'scores' && m.lowWins ? ' · low wins' : '') + '</span></div>' +
     '<div class="res">' + rows + '</div>' +
     '<div class="m-actions"><button class="link-btn" data-edit="' + esc(m.id) + '">Edit</button></div>' +
@@ -924,14 +926,28 @@ function openLogSheet(editId){
       participants: editing.results.map(r => r.playerId),
       winners: editing.mode === 'winner' ? editing.results.filter(r => r.rank === 1).map(r => r.playerId) : [],
       order: editing.mode === 'ranking' ? [...editing.results].sort((a,b) => a.rank - b.rank).map(r => r.playerId) : [],
-      scores: editing.mode === 'scores' ? Object.fromEntries(editing.results.map(r => [r.playerId, r.score])) : {}
+      scores: editing.mode === 'scores' ? Object.fromEntries(editing.results.map(r => [r.playerId, r.score])) : {},
+      teamOf: {}, teamOrder: []
     };
+    if(editing.mode === 'teams'){
+      // teams are the rank groups: members share their team's finishing position
+      const byRank = new Map();
+      editing.results.forEach(r => {
+        const k = r.rank ?? 0;
+        if(!byRank.has(k)) byRank.set(k, []);
+        byRank.get(k).push(r.playerId);
+      });
+      [...byRank.keys()].sort((a,b) => a - b).forEach((rk, i) => {
+        byRank.get(rk).forEach(pid => { draft.teamOf[pid] = i + 1; });
+        draft.teamOrder.push(i + 1);
+      });
+    }
   } else {
     draft = {
       id: null, seq: null, lowWinsTouched: false, weightTouched: false, weight: 2,
       game: '', date: todayStr(), mode: 'winner', lowWins: false,
       participants: state.players.map(p => p.id),
-      winners: [], order: [], scores: {}
+      winners: [], order: [], scores: {}, teamOf: {}, teamOrder: []
     };
   }
 
@@ -961,6 +977,7 @@ function openLogSheet(editId){
         '<button data-mode="winner" aria-pressed="false">Winner</button>' +
         '<button data-mode="ranking" aria-pressed="false">Ranking</button>' +
         '<button data-mode="scores" aria-pressed="false">Scores</button>' +
+        '<button data-mode="teams" aria-pressed="false">Teams</button>' +
       '</div></div>' +
 
     '<div class="field" id="fModeArea"></div>' +
@@ -974,15 +991,16 @@ function openLogSheet(editId){
   // Discard guard: dismissing this sheet with unsaved input takes two taps.
   // A new entry counts as dirty once anything meaningful is typed; an edit
   // counts as dirty once it differs from the match it was opened with.
-  const snap = () => JSON.stringify([draft.game.trim(), draft.date, draft.mode, draft.lowWins,
+  const snap = () => JSON.stringify([draft.game.trim(), draft.date, draft.mode, draft.lowWins, draft.weight,
     [...draft.participants].sort(), [...draft.winners].sort(), draft.order,
-    Object.entries(draft.scores).filter(([,v]) => String(v ?? '').trim() !== '').sort()]);
+    Object.entries(draft.scores).filter(([,v]) => String(v ?? '').trim() !== '').sort(),
+    Object.entries(draft.teamOf).sort(), draft.teamOrder]);
   if(editing){
     const initialSnap = snap();
     sheetDirtyCheck = () => snap() !== initialSnap;
   } else {
     sheetDirtyCheck = () => !!(draft.game.trim() || draft.winners.length || draft.order.length ||
-      Object.values(draft.scores).some(v => String(v ?? '').trim() !== ''));
+      draft.teamOrder.length || Object.values(draft.scores).some(v => String(v ?? '').trim() !== ''));
   }
 
   $('#shClose').addEventListener('click', requestCloseSheet);
@@ -1044,9 +1062,11 @@ function renderWho(){
       draft.winners = draft.winners.filter(x => x !== id);
       draft.order = draft.order.filter(x => x !== id);
       delete draft.scores[id];
+      delete draft.teamOf[id];
     } else {
       draft.participants.push(id);
     }
+    if(draft.mode === 'teams') draft.teamOrder = [];   // roster changed — finishing order is stale
     renderWho(); renderModeArea();
   }));
 }
@@ -1064,7 +1084,7 @@ function renderModeArea(){
   const ps = participantsInOrder();
 
   if(draft.mode === 'winner'){
-    host.innerHTML = '<label style="display:block" class="hint">Tap the winner — or several, for team and co-op wins. Everyone else just gets a game played.</label>' +
+    host.innerHTML = '<label style="display:block" class="hint">Tap the winner — or several, for co-op wins. Everyone else just gets a game played.</label>' +
       '<div class="chips" style="margin-top:8px">' + ps.map(p => {
         const on = draft.winners.includes(p.id);
         return '<button class="chip" style="--pc:' + slotVar(p) + '" data-win="' + esc(p.id) + '" aria-pressed="' + on + '">' +
@@ -1092,6 +1112,44 @@ function renderModeArea(){
     }));
     const oc = $('#ordClear');
     if(oc) oc.addEventListener('click', () => { draft.order = []; renderModeArea(); });
+
+  } else if(draft.mode === 'teams'){
+    const maxTeam = Math.min(4, ps.length);
+    for(const p of ps) if(!draft.teamOf[p.id]) draft.teamOf[p.id] = 1;
+    const teamsInUse = [...new Set(ps.map(p => draft.teamOf[p.id]))].sort((a,b) => a - b);
+    let h = '<label style="display:block" class="hint">Tap a player to move them to the next team.</label>' +
+      '<div class="chips" style="margin-top:8px">' + ps.map(p =>
+        '<button class="chip" style="--pc:' + slotVar(p) + '" data-team="' + esc(p.id) + '" aria-pressed="true">' +
+        '<span class="mdot"></span>' + esc(p.name) + '<span class="place-badge">T' + draft.teamOf[p.id] + '</span></button>'
+      ).join('') + '</div>';
+    if(teamsInUse.length >= 2){
+      h += '<label style="display:block; margin-top:16px" class="hint">Now tap the teams in finishing order — first tap won.</label>' +
+        '<div class="chips" style="margin-top:8px">' + teamsInUse.map(t => {
+          const members = ps.filter(p => draft.teamOf[p.id] === t).map(p => p.name).join(' + ');
+          const idx = draft.teamOrder.indexOf(t);
+          return '<button class="chip" data-tord="' + t + '" aria-pressed="' + (idx >= 0) + '">' +
+            'Team ' + t + ' · ' + esc(members) +
+            (idx >= 0 ? '<span class="place-badge">' + (idx + 1) + '</span>' : '') + '</button>';
+        }).join('') + '</div>' +
+        (draft.teamOrder.length ? '<p style="margin:10px 0 0"><button class="link-btn" id="tordClear">Clear order</button></p>' : '');
+    } else {
+      h += '<p class="hint" style="margin-top:10px">Everyone’s on one team so far — move someone to Team 2.</p>';
+    }
+    host.innerHTML = h;
+    $$('#fModeArea [data-team]').forEach(c => c.addEventListener('click', () => {
+      const id = c.dataset.team;
+      const cur = draft.teamOf[id] || 1;
+      draft.teamOf[id] = cur >= maxTeam ? 1 : cur + 1;
+      draft.teamOrder = [];   // grouping changed — old finishing order is stale
+      renderModeArea();
+    }));
+    $$('#fModeArea [data-tord]').forEach(c => c.addEventListener('click', () => {
+      const t = Number(c.dataset.tord);
+      draft.teamOrder = draft.teamOrder.includes(t) ? draft.teamOrder.filter(x => x !== t) : [...draft.teamOrder, t];
+      renderModeArea();
+    }));
+    const tc = $('#tordClear');
+    if(tc) tc.addEventListener('click', () => { draft.teamOrder = []; renderModeArea(); });
 
   } else { // scores
     host.innerHTML =
@@ -1167,6 +1225,13 @@ function saveMatch(){
   } else if(draft.mode === 'ranking'){
     if(draft.order.length !== ps.length) return fail('Rank everyone — ' + (ps.length - draft.order.length) + ' still missing.');
     results = draft.order.map((pid, i) => ({ playerId: pid, score: null, rank: i + 1 }));
+  } else if(draft.mode === 'teams'){
+    for(const p of ps) if(!draft.teamOf[p.id]) draft.teamOf[p.id] = 1;
+    const teamsInUse = [...new Set(ps.map(p => draft.teamOf[p.id]))];
+    if(teamsInUse.length < 2) return fail('Split the players into at least two teams.');
+    if(draft.teamOrder.length !== teamsInUse.length || !teamsInUse.every(t => draft.teamOrder.includes(t)))
+      return fail('Tap the teams in finishing order — every team needs a place.');
+    results = ps.map(p => ({ playerId: p.id, score: null, rank: draft.teamOrder.indexOf(draft.teamOf[p.id]) + 1 }));
   } else {
     for(const p of ps){
       if(!isNum(draft.scores[p.id])) return fail('Enter a score for ' + p.name + '.');
@@ -1249,7 +1314,8 @@ function openSettingsSheet(){
       '<p class="hint" style="font-size:13.5px">Beat a player, earn the game’s weight in points: Light ×1, Standard ×2, Heavy ×3. ' +
       'Winning a heavy 9-player game pays 24; edging a light duel pays 1. The board ranks <b>points per game</b> ' +
       '(with two “ghost games” added), so skipping a night doesn’t sink you — and one lucky win can’t clinch the week. ' +
-      'Ties count as level, not beaten; quick “Winner” entries pay winners only.</p></div>' +
+      'Ties count as level, not beaten; quick “Winner” entries pay winners only. ' +
+      'In team games your team’s finish is yours: you beat everyone on teams behind you, and teammates count as level.</p></div>' +
 
     '<div class="field"><label>Put it on your phone</label>' +
       '<p class="hint">Open this page in Safari (iPhone) or Chrome (Android), then Share → <b>Add to Home Screen</b>. ' +

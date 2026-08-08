@@ -1,7 +1,7 @@
 /* Game Week service worker: cache-first with background refresh, so the
    scoreboard opens instantly (and offline) and picks up updates on the
    following visit. Bump CACHE to invalidate. */
-const CACHE = 'gameweek-v1';
+const CACHE = 'gameweek-v2';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
