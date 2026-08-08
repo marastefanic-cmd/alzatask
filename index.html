@@ -303,8 +303,8 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 'use strict';
 /* =====================================================================
    Game Week — a vacation board-game scoreboard.
-   All data lives in localStorage on this device. Points are derived
-   from stored placements, so the scoring scheme can change at any time.
+   All data lives in localStorage on this device. Matches store
+   placements and a game weight; points are recomputed on every render.
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
@@ -470,8 +470,8 @@ function standings(){
   }
   rows.forEach(r => { r.rating = ratingOf(r.pts, r.played); });
   rows.sort((a,b) => b.rating - a.rating || b.pts - a.pts || b.wins - a.wins || a.p.name.localeCompare(b.p.name));
-  // competition rank by rating (compared at display precision, not float noise)
-  const key = r => Math.round(r.rating * 100);
+  // competition rank by rating, compared at the same one-decimal precision fmtNum displays
+  const key = r => Math.round(r.rating * 10);
   rows.forEach((r,i) => { r.rank = (i > 0 && key(rows[i-1]) === key(r)) ? rows[i-1].rank : i + 1; });
   return rows;
 }
@@ -561,8 +561,10 @@ function renderStandings(){
         '<h2>Who’s playing this week?</h2>' +
         '<p>Add your crew first — then log every game you play and watch the race unfold.</p>' +
         '<button class="btn" id="goPlayers">Add players</button>' +
+        '<p style="margin:14px 0 0"><button class="link-btn" id="goImport">Already have a backup? Import it</button></p>' +
       '</div>';
     $('#goPlayers').addEventListener('click', () => switchTab('players'));
+    $('#goImport').addEventListener('click', openSettingsSheet);
     return;
   }
 
@@ -656,7 +658,8 @@ function renderRace(){
   }
   const N = ms.length;
   const lead = standings()[0];
-  const dataMax = Math.max(1, ...series.map(s => s.pts[N]));
+  // domain over every plotted point — early-week rating spikes sit far above the damped finals
+  const dataMax = Math.max(1, ...series.flatMap(s => s.pts));
   const yTicks = niceTicks(dataMax);
   const yMax = yTicks[yTicks.length - 1];
   const X = i => padL + (W - padL - padR) * (i / Math.max(N, 1));
@@ -694,7 +697,7 @@ function renderRace(){
   }
 
   $('#raceSvg').innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" ' +
-    'aria-label="Cumulative points per player after each game">' + g + '</svg>';
+    'aria-label="Points-per-game rating for each player after each game">' + g + '</svg>';
 
   $('#raceLegend').innerHTML = state.players.map(p =>
     '<span class="lg" style="--pc:' + slotVar(p) + '"><span class="mdot"></span>' + esc(p.name) + '</span>'
@@ -1000,7 +1003,8 @@ function openLogSheet(editId){
     sheetDirtyCheck = () => snap() !== initialSnap;
   } else {
     sheetDirtyCheck = () => !!(draft.game.trim() || draft.winners.length || draft.order.length ||
-      draft.teamOrder.length || Object.values(draft.scores).some(v => String(v ?? '').trim() !== ''));
+      draft.teamOrder.length || draft.weightTouched ||
+      Object.values(draft.scores).some(v => String(v ?? '').trim() !== ''));
   }
 
   $('#shClose').addEventListener('click', requestCloseSheet);
@@ -1319,7 +1323,8 @@ function openSettingsSheet(){
 
     '<div class="field"><label>Put it on your phone</label>' +
       '<p class="hint">Open this page in Safari (iPhone) or Chrome (Android), then Share → <b>Add to Home Screen</b>. ' +
-      'It becomes a full-screen app, works offline, and the scoreboard lives on that phone.</p></div>' +
+      'It becomes a full-screen app that works offline. Heads-up: the installed app keeps its <b>own</b> scoreboard, ' +
+      'separate from the browser tab — install before you start logging, or move your games over with Export → Import.</p></div>' +
 
     '<div class="field"><label>Your data</label>' +
       '<div style="display:flex; gap:10px; flex-wrap:wrap">' +
