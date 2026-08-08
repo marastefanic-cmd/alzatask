@@ -11,7 +11,7 @@
   color-scheme: light;
   --page:#f9f9f7; --card:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
   --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,.10);
-  --good:#006300; --danger:#d03b3b;
+  --good:#006300; --danger:#d03b3b; --danger-text:#ffffff;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
   --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
   --btn-ink:#0b0b0b; --btn-text:#fcfcfb; --wash:rgba(11,11,11,.05);
@@ -21,7 +21,7 @@
     color-scheme: dark;
     --page:#0d0d0d; --card:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
     --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
-    --good:#0ca30c; --danger:#e66767;
+    --good:#0ca30c; --danger:#e66767; --danger-text:#0d0d0d;
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
     --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
     --btn-ink:#f2f1ec; --btn-text:#0d0d0d; --wash:rgba(255,255,255,.07);
@@ -31,7 +31,7 @@
   color-scheme: dark;
   --page:#0d0d0d; --card:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
   --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
-  --good:#0ca30c; --danger:#e66767;
+  --good:#0ca30c; --danger:#e66767; --danger-text:#0d0d0d;
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
   --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
   --btn-ink:#f2f1ec; --btn-text:#0d0d0d; --wash:rgba(255,255,255,.07);
@@ -145,7 +145,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .btn:active{opacity:.85}
 .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--baseline)}
 .btn.small{padding:8px 14px; font-size:14px; border-radius:10px}
-.btn.danger-solid{background:var(--danger); color:#fff}
+.btn.danger-solid{background:var(--danger); color:var(--danger-text)}
 .btn[disabled]{opacity:.45; cursor:not-allowed}
 .seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px; background:var(--page);
   border:1px solid var(--grid); border-radius:12px; padding:4px}
@@ -186,7 +186,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .tabbar .tab{display:grid; justify-items:center; gap:2px; padding:6px 2px; border-radius:10px;
   font-size:11px; font-weight:650; color:var(--muted)}
 .tabbar .tab svg{width:22px; height:22px}
-.tabbar .tab[aria-selected="true"]{color:var(--ink)}
+.tabbar .tab[aria-current]{color:var(--ink)}
 .tabbar .log-btn{width:54px; height:54px; margin:0 8px; border-radius:50%; background:var(--btn-ink); color:var(--btn-text);
   display:grid; place-items:center; box-shadow:0 4px 12px rgba(0,0,0,.22); transform:translateY(-10px)}
 .tabbar .log-btn svg{width:26px; height:26px}
@@ -267,17 +267,17 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
   </header>
 
   <main>
-    <section id="view-standings" role="tabpanel" aria-label="Standings"></section>
-    <section id="view-history" role="tabpanel" aria-label="History" hidden></section>
-    <section id="view-players" role="tabpanel" aria-label="Players" hidden></section>
+    <section id="view-standings" aria-label="Standings"></section>
+    <section id="view-history" aria-label="History" hidden></section>
+    <section id="view-players" aria-label="Players" hidden></section>
   </main>
 </div>
 
 <nav class="tabbar" aria-label="Main">
-  <button class="tab" data-tab="standings" aria-selected="true"><svg aria-hidden="true"><use href="#i-trophy"/></svg>Standings</button>
-  <button class="tab" data-tab="history" aria-selected="false"><svg aria-hidden="true"><use href="#i-list"/></svg>History</button>
+  <button class="tab" data-tab="standings" aria-current="page"><svg aria-hidden="true"><use href="#i-trophy"/></svg>Standings</button>
+  <button class="tab" data-tab="history"><svg aria-hidden="true"><use href="#i-list"/></svg>History</button>
   <button class="log-btn" id="btnLog" aria-label="Log a game"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
-  <button class="tab" data-tab="players" aria-selected="false"><svg aria-hidden="true"><use href="#i-people"/></svg>Players</button>
+  <button class="tab" data-tab="players"><svg aria-hidden="true"><use href="#i-people"/></svg>Players</button>
   <span></span>
 </nav>
 
@@ -356,6 +356,10 @@ function sanitizeState(o){
   }
   if(o.settings && ['winner','podium','linear'].includes(o.settings.scheme)) s.settings.scheme = o.settings.scheme;
   const usedSlots = new Set();
+  // Ids from a foreign file are untrusted: anything outside a safe charset is
+  // regenerated, with a map so match results keep pointing at the right player.
+  const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+  const idMap = new Map();
   if(Array.isArray(o.players)){
     for(const p of o.players.slice(0, MAX_PLAYERS)){
       if(!p || typeof p.name !== 'string' || !p.name.trim()) continue;
@@ -363,7 +367,10 @@ function sanitizeState(o){
       if(slot === null){ slot = 0; while(usedSlots.has(slot)) slot++; }
       if(slot >= MAX_PLAYERS) continue;
       usedSlots.add(slot);
-      s.players.push({ id: typeof p.id === 'string' && p.id ? p.id : uid(), name: p.name.trim().slice(0,40), slot });
+      const rawId = typeof p.id === 'string' && p.id ? p.id : null;
+      const id = (rawId && ID_RE.test(rawId) && !idMap.has(rawId)) ? rawId : uid();
+      if(rawId) idMap.set(rawId, id);
+      s.players.push({ id, name: p.name.trim().slice(0,40), slot });
     }
   }
   const ids = new Set(s.players.map(p => p.id));
@@ -372,17 +379,18 @@ function sanitizeState(o){
       if(!m || typeof m !== 'object' || !Array.isArray(m.results)) continue;
       const results = [];
       for(const r of m.results){
-        if(!r || !ids.has(r.playerId)) continue;
-        if(results.some(x => x.playerId === r.playerId)) continue;
+        const pid = (r && typeof r.playerId === 'string') ? idMap.get(r.playerId) : null;
+        if(!pid || !ids.has(pid)) continue;
+        if(results.some(x => x.playerId === pid)) continue;
         results.push({
-          playerId: r.playerId,
+          playerId: pid,
           score: (typeof r.score === 'number' && isFinite(r.score)) ? r.score : null,
           rank: (Number.isInteger(r.rank) && r.rank >= 1) ? r.rank : null
         });
       }
       if(results.length < 1) continue;
       s.matches.push({
-        id: typeof m.id === 'string' && m.id ? m.id : uid(),
+        id: (typeof m.id === 'string' && ID_RE.test(m.id)) ? m.id : uid(),
         seq: Number.isInteger(m.seq) ? m.seq : 0,
         game: (typeof m.game === 'string' && m.game.trim()) ? m.game.trim().slice(0,60) : 'Game',
         date: (typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) ? m.date : todayStr(),
@@ -615,6 +623,7 @@ let raceData = null;
 function renderRace(){
   const wrap = $('#raceWrap');
   if(!wrap) return;
+  raceLeave();
   const ms = orderedMatches();
   const W = Math.max(wrap.clientWidth || 560, 280);
   const H = 224;
@@ -681,6 +690,7 @@ function niceTicks(max){
   const pow = Math.pow(10, Math.floor(Math.log10(raw)));
   let step = pow;
   for(const m of [1, 2, 5, 10]){ if(m * pow >= raw){ step = m * pow; break; } }
+  if(step < 1) step = 1;   // points are whole numbers — no fractional gridlines
   const top = Math.ceil(max / step) * step;
   const out = [];
   for(let v = 0; v <= top + 1e-9; v += step) out.push(Math.round(v * 100) / 100);
@@ -713,7 +723,8 @@ function raceHover(ev){
   tip.innerHTML = '<div class="tt-title">' + title + '</div>' + rows;
   tip.style.display = 'block';
   const tw = tip.offsetWidth;
-  tip.style.left = (xpx + tw + 20 < W ? xpx + 12 : xpx - tw - 12) + 'px';
+  const lx = xpx + tw + 20 < W ? xpx + 12 : xpx - tw - 12;
+  tip.style.left = Math.max(0, Math.min(lx, W - tw)) + 'px';
   tip.style.top = (padT + 2) + 'px';
 }
 function raceLeave(){
@@ -763,7 +774,7 @@ function matchCard(m){
     '<div class="m-top"><h3>' + esc(m.game) + '</h3>' +
       '<span class="m-meta">' + P + ' players' + (m.mode === 'scores' && m.lowWins ? ' · low wins' : '') + '</span></div>' +
     '<div class="res">' + rows + '</div>' +
-    '<div class="m-actions"><button class="link-btn" data-edit="' + m.id + '">Edit</button></div>' +
+    '<div class="m-actions"><button class="link-btn" data-edit="' + esc(m.id) + '">Edit</button></div>' +
   '</div>';
 }
 
@@ -783,7 +794,7 @@ function renderPlayers(){
       meeple(p) +
       '<div class="pinfo"><div class="nm">' + esc(p.name) + '</div>' +
       '<div class="sub">' + fmtNum(st.pts) + ' pts · ' + st.wins + ' ' + (st.wins === 1 ? 'win' : 'wins') + ' · ' + st.played + ' ' + (st.played === 1 ? 'game' : 'games') + '</div></div>' +
-      '<button class="btn ghost small" data-editp="' + p.id + '">Edit</button>' +
+      '<button class="btn ghost small" data-editp="' + esc(p.id) + '">Edit</button>' +
     '</div>';
   }).join('');
   if(state.players.length < MAX_PLAYERS){
@@ -823,7 +834,12 @@ function renderPlayers(){
 /* =====================================================================
    SHEETS
 ===================================================================== */
+let sheetDirtyCheck = null;   // set by sheets whose dismissal could lose work
+let discardArmAt = 0, discardArmUntil = 0;
+
 function openSheet(html){
+  sheetDirtyCheck = null;
+  discardArmAt = 0; discardArmUntil = 0;
   const host = $('#sheetHost');
   $('#sheetBody').innerHTML = '<div class="grab" aria-hidden="true"></div>' + html;
   host.classList.add('open');
@@ -831,11 +847,45 @@ function openSheet(html){
   document.body.style.overflow = 'hidden';
 }
 function closeSheet(){
+  sheetDirtyCheck = null;
   const host = $('#sheetHost');
   host.classList.remove('open');
   host.setAttribute('aria-hidden', 'true');
   $('#sheetBody').innerHTML = '';
   document.body.style.overflow = '';
+}
+/* Backdrop tap / Escape / X go through here: with unsaved input, the first
+   attempt only warns, a second within 3s (but not a double-tap bounce) closes. */
+function requestCloseSheet(){
+  if(sheetDirtyCheck && sheetDirtyCheck()){
+    const now = Date.now();
+    if(now > discardArmUntil){
+      discardArmAt = now;
+      discardArmUntil = now + 3000;
+      toast('Tap again to discard this game.');
+      return;
+    }
+    if(now - discardArmAt < 500) return;
+  }
+  closeSheet();
+}
+/* Two-tap destructive confirm with a double-tap debounce and auto-disarm. */
+function armButton(btn, armedLabel, onConfirm){
+  btn.addEventListener('click', () => {
+    const at = Number(btn.dataset.armedAt || 0);
+    if(at && Date.now() - at > 500){ onConfirm(); return; }
+    if(at) return;
+    btn.dataset.armedAt = String(Date.now());
+    btn.dataset.restore = btn.textContent;
+    btn.textContent = armedLabel;
+    btn.classList.add('danger-solid'); btn.classList.remove('ghost');
+    setTimeout(() => {
+      if(!btn.isConnected || !btn.dataset.armedAt) return;
+      btn.textContent = btn.dataset.restore;
+      delete btn.dataset.armedAt;
+      btn.classList.remove('danger-solid'); btn.classList.add('ghost');
+    }, 4000);
+  });
 }
 
 /* ---------- log / edit match sheet ---------- */
@@ -848,7 +898,7 @@ function openLogSheet(editId){
 
   if(editing){
     draft = {
-      id: editing.id, seq: editing.seq,
+      id: editing.id, seq: editing.seq, lowWinsTouched: true,
       game: editing.game, date: editing.date, mode: editing.mode, lowWins: editing.lowWins,
       participants: editing.results.map(r => r.playerId),
       winners: editing.mode === 'winner' ? editing.results.filter(r => r.rank === 1).map(r => r.playerId) : [],
@@ -857,7 +907,7 @@ function openLogSheet(editId){
     };
   } else {
     draft = {
-      id: null, seq: null,
+      id: null, seq: null, lowWinsTouched: false,
       game: '', date: todayStr(), mode: 'winner', lowWins: false,
       participants: state.players.map(p => p.id),
       winners: [], order: [], scores: {}
@@ -893,40 +943,55 @@ function openLogSheet(editId){
     '</div>'
   );
 
-  $('#shClose').addEventListener('click', closeSheet);
+  // Discard guard: dismissing this sheet with unsaved input takes two taps.
+  // A new entry counts as dirty once anything meaningful is typed; an edit
+  // counts as dirty once it differs from the match it was opened with.
+  const snap = () => JSON.stringify([draft.game.trim(), draft.date, draft.mode, draft.lowWins,
+    [...draft.participants].sort(), [...draft.winners].sort(), draft.order,
+    Object.entries(draft.scores).filter(([,v]) => String(v ?? '').trim() !== '').sort()]);
+  if(editing){
+    const initialSnap = snap();
+    sheetDirtyCheck = () => snap() !== initialSnap;
+  } else {
+    sheetDirtyCheck = () => !!(draft.game.trim() || draft.winners.length || draft.order.length ||
+      Object.values(draft.scores).some(v => String(v ?? '').trim() !== ''));
+  }
+
+  $('#shClose').addEventListener('click', requestCloseSheet);
   $('#fGame').addEventListener('input', e => {
     draft.game = e.target.value;
-    const pref = state.gamePrefs[draft.game.trim().toLowerCase()];
-    if(pref && draft.mode === 'scores'){ draft.lowWins = pref.lowWins; renderModeArea(); }
+    applyGamePref();
+    const lw = $('#fLow');
+    if(lw && lw.checked !== draft.lowWins){ lw.checked = draft.lowWins; updatePlacePreview(); }
   });
   $('#fDate').addEventListener('change', e => { draft.date = e.target.value || todayStr(); });
   $$('#fMode button').forEach(b => b.addEventListener('click', () => {
     draft.mode = b.dataset.mode;
-    const pref = state.gamePrefs[draft.game.trim().toLowerCase()];
-    if(pref && draft.mode === 'scores') draft.lowWins = pref.lowWins;
+    applyGamePref();
     renderModeSeg(); renderModeArea();
   }));
   $('#fSave').addEventListener('click', saveMatch);
   const del = $('#fDelete');
-  if(del) del.addEventListener('click', () => {
-    if(del.dataset.armed){
-      state.matches = state.matches.filter(m => m.id !== draft.id);
-      save(); closeSheet(); renderAll(); toast('Game deleted.');
-    } else {
-      del.dataset.armed = '1';
-      del.textContent = 'Really delete?';
-      del.classList.add('danger-solid');
-      del.classList.remove('ghost');
-    }
+  if(del) armButton(del, 'Really delete?', () => {
+    state.matches = state.matches.filter(m => m.id !== draft.id);
+    save(); closeSheet(); renderAll(); toast('Game deleted.');
   });
 
   renderWho(); renderModeSeg(); renderModeArea();
 }
 
+/* Apply the remembered per-game "lowest wins" default — but never override an
+   explicit toggle in this sheet, or the stored flag of a match being edited. */
+function applyGamePref(){
+  if(!draft || draft.mode !== 'scores' || draft.lowWinsTouched) return;
+  const pref = state.gamePrefs[draft.game.trim().toLowerCase()];
+  draft.lowWins = pref ? !!pref.lowWins : false;
+}
+
 function renderWho(){
   $('#fWho').innerHTML = state.players.map(p => {
     const on = draft.participants.includes(p.id);
-    return '<button class="chip" style="--pc:' + slotVar(p) + '" data-pid="' + p.id + '" aria-pressed="' + on + '">' +
+    return '<button class="chip" style="--pc:' + slotVar(p) + '" data-pid="' + esc(p.id) + '" aria-pressed="' + on + '">' +
       '<span class="mdot"></span>' + esc(p.name) + '</button>';
   }).join('');
   $$('#fWho .chip').forEach(c => c.addEventListener('click', () => {
@@ -959,7 +1024,7 @@ function renderModeArea(){
     host.innerHTML = '<label style="display:block" class="hint">Tap the winner — or several, for team and co-op wins. Everyone else just gets a game played.</label>' +
       '<div class="chips" style="margin-top:8px">' + ps.map(p => {
         const on = draft.winners.includes(p.id);
-        return '<button class="chip" style="--pc:' + slotVar(p) + '" data-win="' + p.id + '" aria-pressed="' + on + '">' +
+        return '<button class="chip" style="--pc:' + slotVar(p) + '" data-win="' + esc(p.id) + '" aria-pressed="' + on + '">' +
           '<span class="mdot"></span>' + esc(p.name) + (on ? ' 🏆' : '') + '</button>';
       }).join('') + '</div>';
     $$('#fModeArea [data-win]').forEach(c => c.addEventListener('click', () => {
@@ -972,7 +1037,7 @@ function renderModeArea(){
     host.innerHTML = '<label style="display:block" class="hint">Tap players in finishing order — first tap is 1st place. Tap again to remove.</label>' +
       '<div class="chips" style="margin-top:8px">' + ps.map(p => {
         const idx = draft.order.indexOf(p.id);
-        return '<button class="chip" style="--pc:' + slotVar(p) + '" data-ord="' + p.id + '" aria-pressed="' + (idx >= 0) + '">' +
+        return '<button class="chip" style="--pc:' + slotVar(p) + '" data-ord="' + esc(p.id) + '" aria-pressed="' + (idx >= 0) + '">' +
           '<span class="mdot"></span>' + esc(p.name) +
           (idx >= 0 ? '<span class="place-badge">' + (idx + 1) + '</span>' : '') + '</button>';
       }).join('') + '</div>' +
@@ -988,17 +1053,28 @@ function renderModeArea(){
   } else { // scores
     host.innerHTML =
       '<label class="switch"><input type="checkbox" id="fLow"' + (draft.lowWins ? ' checked' : '') + '> Lowest score wins (golf-style)</label>' +
-      ps.map(p =>
+      ps.map((p, i) =>
         '<div class="score-row" style="--pc:' + slotVar(p) + '"><span class="mdot"></span>' +
         '<div class="nm">' + esc(p.name) + '</div>' +
-        '<div class="place" data-place="' + p.id + '"></div>' +
-        '<input class="tin" inputmode="text" autocomplete="off" data-score="' + p.id + '" ' +
+        '<div class="place" data-place="' + esc(p.id) + '"></div>' +
+        '<input class="tin" inputmode="decimal" autocomplete="off" data-score="' + esc(p.id) + '" ' +
+          'enterkeyhint="' + (i < ps.length - 1 ? 'next' : 'done') + '" ' +
           'value="' + (draft.scores[p.id] != null ? esc(String(draft.scores[p.id])) : '') + '" ' +
           'placeholder="0" aria-label="Score for ' + esc(p.name) + '"></div>'
       ).join('');
-    $('#fLow').addEventListener('change', e => { draft.lowWins = e.target.checked; updatePlacePreview(); });
+    $('#fLow').addEventListener('change', e => {
+      draft.lowWins = e.target.checked;
+      draft.lowWinsTouched = true;
+      updatePlacePreview();
+    });
     $$('#fModeArea [data-score]').forEach(inp => {
       inp.addEventListener('input', () => { draft.scores[inp.dataset.score] = inp.value; updatePlacePreview(); });
+      inp.addEventListener('keydown', e => {
+        if(e.key !== 'Enter') return;
+        const all = $$('#fModeArea [data-score]');
+        const i = all.indexOf(inp);
+        if(i >= 0 && i < all.length - 1) all[i + 1].focus(); else inp.blur();
+      });
     });
     updatePlacePreview();
   }
@@ -1015,7 +1091,15 @@ function updatePlacePreview(){
   });
 }
 
-function scoreNum(v){ return Number(String(v).trim().replace(',', '.')); }
+/* Commas are ambiguous: "1,500" is a thousands separator, "3,5" a decimal.
+   Anything else with a comma is rejected so a typo can't silently mis-rank. */
+function scoreNum(v){
+  let s = String(v).trim().replace(/\s+/g, '');
+  if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s = s.replace(/,/g, '');
+  else if(/^-?\d+,\d+$/.test(s)) s = s.replace(',', '.');
+  else if(s.includes(',')) return NaN;
+  return Number(s);
+}
 function isNum(v){
   if(v == null || String(v).trim() === '') return false;
   return isFinite(scoreNum(v));
@@ -1094,16 +1178,9 @@ function openPlayerSheet(pid){
     save(); closeSheet(); renderAll();
   });
   const del = $('#pDelete');
-  if(del) del.addEventListener('click', () => {
-    if(del.dataset.armed){
-      state.players = state.players.filter(x => x.id !== pid);
-      save(); closeSheet(); renderAll(); toast('Player removed.');
-    } else {
-      del.dataset.armed = '1';
-      del.textContent = 'Really remove?';
-      del.classList.add('danger-solid');
-      del.classList.remove('ghost');
-    }
+  if(del) armButton(del, 'Really remove?', () => {
+    state.players = state.players.filter(x => x.id !== pid);
+    save(); closeSheet(); renderAll(); toast('Player removed.');
   });
 }
 
@@ -1155,17 +1232,9 @@ function openSettingsSheet(){
   $('#sImport').addEventListener('click', () => $('#sFile').click());
   $('#sFile').addEventListener('change', importData);
 
-  const rst = $('#sReset');
-  rst.addEventListener('click', () => {
-    if(rst.dataset.armed){
-      state = freshState();
-      save(); closeSheet(); renderAll(); toast('Fresh scoreboard — have a great week!');
-    } else {
-      rst.dataset.armed = '1';
-      rst.textContent = 'Really erase everything?';
-      rst.classList.add('danger-solid');
-      rst.classList.remove('ghost');
-    }
+  armButton($('#sReset'), 'Really erase everything?', () => {
+    state = freshState();
+    save(); closeSheet(); renderAll(); toast('Fresh scoreboard — have a great week!');
   });
 }
 
@@ -1196,15 +1265,38 @@ function importData(ev){
       const parsed = JSON.parse(reader.result);
       const next = sanitizeState(parsed);
       if(!next || (!next.players.length && !next.matches.length)) throw new Error('empty');
-      state = next;
-      seqCounter = state.matches.reduce((m,x) => Math.max(m, x.seq || 0), 0);
-      save(); closeSheet(); renderAll();
-      toast('Backup imported — ' + state.players.length + ' players, ' + state.matches.length + ' games.');
+      if(state.players.length || state.matches.length) confirmImport(next);
+      else applyImport(next);
     } catch(e){
       toast('That file doesn’t look like a Game Week backup.');
     }
   };
   reader.readAsText(file);
+  ev.target.value = '';
+}
+
+function applyImport(next){
+  state = next;
+  seqCounter = state.matches.reduce((m,x) => Math.max(m, x.seq || 0), 0);
+  save(); closeSheet(); renderAll();
+  toast('Backup imported — ' + state.players.length + ' players, ' + state.matches.length + ' games.');
+}
+
+/* Importing over a live scoreboard is irreversible — spell out both sides first. */
+function confirmImport(next){
+  openSheet(
+    '<div class="sh-head"><h2>Replace this scoreboard?</h2>' +
+      '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
+    '<p style="font-size:14.5px; color:var(--ink2); margin:8px 0 0">This phone holds <b>' +
+      state.players.length + ' players and ' + state.matches.length + ' games</b>. The backup holds <b>' +
+      next.players.length + ' players and ' + next.matches.length + ' games</b>. ' +
+      'Importing replaces everything here, and there’s no undo.</p>' +
+    '<div class="foot"><button class="btn ghost" id="impCancel">Keep current</button>' +
+    '<button class="btn danger-solid" id="impGo">Replace</button></div>'
+  );
+  $('#shClose').addEventListener('click', closeSheet);
+  $('#impCancel').addEventListener('click', closeSheet);
+  $('#impGo').addEventListener('click', () => applyImport(next));
 }
 
 /* =====================================================================
@@ -1212,7 +1304,10 @@ function importData(ev){
 ===================================================================== */
 function switchTab(tab){
   activeTab = tab;
-  $$('.tabbar .tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  $$('.tabbar .tab').forEach(b => {
+    if(b.dataset.tab === tab) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   $('#view-standings').hidden = tab !== 'standings';
   $('#view-history').hidden = tab !== 'history';
   $('#view-players').hidden = tab !== 'players';
@@ -1222,9 +1317,9 @@ function switchTab(tab){
 $$('.tabbar .tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 $('#btnLog').addEventListener('click', () => openLogSheet(null));
 $('#btnSettings').addEventListener('click', openSettingsSheet);
-$('#sheetBack').addEventListener('click', closeSheet);
+$('#sheetBack').addEventListener('click', requestCloseSheet);
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape' && $('#sheetHost').classList.contains('open')) closeSheet();
+  if(e.key === 'Escape' && $('#sheetHost').classList.contains('open')) requestCloseSheet();
 });
 
 // race chart hover / touch (delegated — the chart re-renders)
@@ -1234,8 +1329,10 @@ document.addEventListener('pointermove', e => {
 });
 document.addEventListener('pointerdown', e => {
   const wrap = e.target.closest && e.target.closest('#raceWrap');
-  if(wrap) raceHover(e);
+  if(wrap) raceHover(e); else raceLeave();
 });
+// A scroll pan that starts on the chart cancels the pointer — don't strand the tooltip.
+document.addEventListener('pointercancel', raceLeave);
 
 let resizeTimer = null;
 window.addEventListener('resize', () => {
