@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f9f9f7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0d0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Game Week">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Game Week — Vacation Scoreboard</title>
 <style>
 /* ---------- tokens ---------- */
@@ -318,7 +326,7 @@ function freshState(){
   return {
     version: 1,
     trip: { name: 'Game Week', start: todayStr() },
-    settings: { scheme: 'podium' },
+    settings: {},
     players: [],           // {id, name, slot}
     matches: [],           // {id, seq, game, date, mode, lowWins, results:[{playerId, score|null, rank|null}]}
     gamePrefs: {}          // { lowercased game name: {lowWins} }
@@ -357,7 +365,6 @@ function sanitizeState(o){
     if(typeof o.trip.name === 'string' && o.trip.name.trim()) s.trip.name = o.trip.name.trim().slice(0,60);
     if(typeof o.trip.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.trip.start)) s.trip.start = o.trip.start;
   }
-  if(o.settings && ['winner','podium','linear'].includes(o.settings.scheme)) s.settings.scheme = o.settings.scheme;
   const usedSlots = new Set();
   // Ids from a foreign file are untrusted: anything outside a safe charset is
   // regenerated, with a map so match results keep pointing at the right player.
@@ -399,6 +406,7 @@ function sanitizeState(o){
         date: (typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) ? m.date : todayStr(),
         mode: ['winner','ranking','scores'].includes(m.mode) ? m.mode : 'winner',
         lowWins: !!m.lowWins,
+        weight: [1,2,3].includes(m.weight) ? m.weight : 2,
         results
       });
     }
@@ -409,26 +417,29 @@ function sanitizeState(o){
   if(o.gamePrefs && typeof o.gamePrefs === 'object'){
     for(const k of Object.keys(o.gamePrefs).slice(0,200)){
       const v = o.gamePrefs[k];
-      if(v && typeof v === 'object') s.gamePrefs[String(k).slice(0,60)] = { lowWins: !!v.lowWins };
+      if(v && typeof v === 'object') s.gamePrefs[String(k).slice(0,60)] = { lowWins: !!v.lowWins, weight: [1,2,3].includes(v.weight) ? v.weight : 2 };
     }
   }
   return s;
 }
 
 /* ---------- scoring ---------- */
-const SCHEMES = {
-  winner: { label: 'Winner only',  sub: '1 point for winning a game. Simple win count.' },
-  podium: { label: 'Podium',       sub: '3 / 2 / 1 points for 1st / 2nd / 3rd place.' },
-  linear: { label: 'Field size',   sub: 'Win a 6-player game, get 6 points; last place gets 1. Bigger games count for more.' }
-};
+const GHOST_GAMES = 2;   // padded onto everyone's game count so one lucky win can't clinch the week
+const WEIGHT_LABELS = { 1: 'Light', 2: 'Standard', 3: 'Heavy' };
 
-function pointsFor(rank, participants, scheme){
-  scheme = scheme || state.settings.scheme;
-  if(rank == null) return 0;
-  if(scheme === 'winner') return rank === 1 ? 1 : 0;
-  if(scheme === 'podium') return rank === 1 ? 3 : rank === 2 ? 2 : rank === 3 ? 1 : 0;
-  return Math.max(participants - rank + 1, 0); // linear
+/* Beat a player, earn the game's weight in points: (players you finished ahead
+   of) × weight. Ties count as level, not beaten; unranked participants (quick
+   "Winner" entries) count as finished behind everyone who placed. */
+function pointsFor(result, match){
+  if(result.rank == null) return 0;
+  const beaten = match.results.filter(x => x.rank == null ? true : x.rank > result.rank).length;
+  return beaten * (match.weight || 2);
 }
+
+/* The leaderboard metric: points per game, averaged as if everyone had played
+   GHOST_GAMES extra scoreless games. Skipping a night doesn't sink you, and a
+   single big win doesn't top the board for the whole week. */
+function ratingOf(pts, played){ return pts / (played + GHOST_GAMES); }
 
 /* Competition ranking (1,1,3) from scores. */
 function ranksFromScores(entries, lowWins){
@@ -454,12 +465,14 @@ function standings(){
       if(!row) continue;
       row.played++;
       if(r.rank === 1) row.wins++;
-      row.pts += pointsFor(r.rank, m.results.length);
+      row.pts += pointsFor(r, m);
     }
   }
-  rows.sort((a,b) => b.pts - a.pts || b.wins - a.wins || a.played - b.played || a.p.name.localeCompare(b.p.name));
-  // competition rank by points
-  rows.forEach((r,i) => { r.rank = (i > 0 && rows[i-1].pts === r.pts) ? rows[i-1].rank : i + 1; });
+  rows.forEach(r => { r.rating = ratingOf(r.pts, r.played); });
+  rows.sort((a,b) => b.rating - a.rating || b.pts - a.pts || b.wins - a.wins || a.p.name.localeCompare(b.p.name));
+  // competition rank by rating (compared at display precision, not float noise)
+  const key = r => Math.round(r.rating * 100);
+  rows.forEach((r,i) => { r.rank = (i > 0 && key(rows[i-1]) === key(r)) ? rows[i-1].rank : i + 1; });
   return rows;
 }
 
@@ -554,8 +567,8 @@ function renderStandings(){
   }
 
   const rows = standings();
-  const maxPts = Math.max(...rows.map(r => r.pts), 0);
-  const leaders = rows.filter(r => r.rank === 1 && r.pts > 0).map(r => r.p.id);
+  const maxRating = Math.max(...rows.map(r => r.rating), 0);
+  const leaders = rows.filter(r => r.rank === 1 && r.rating > 0).map(r => r.p.id);
   const topGame = mostPlayedGame();
 
   let html = '';
@@ -569,7 +582,7 @@ function renderStandings(){
 
   // standings card
   html += '<div class="card"><div class="card-h"><h2>Standings</h2></div>' +
-    '<p class="card-sub">' + esc(SCHEMES[state.settings.scheme].label) + ' scoring · ties share the better place</p>';
+    '<p class="card-sub">Ranked by points per game · beat a player, earn the game’s weight</p>';
   if(ms.length === 0){
     html += '<div class="empty" style="padding:18px"><h2 style="font-size:16px">No games yet</h2>' +
       '<p>Tap the + button to log your first game.</p></div>';
@@ -580,9 +593,9 @@ function renderStandings(){
       '<div class="rank">' + r.rank + '</div>' +
       meeple(r.p, {crown: isLead}) +
       '<div class="who"><div class="nm">' + esc(r.p.name) + '</div>' +
-        '<div class="sub">' + r.wins + ' ' + (r.wins === 1 ? 'win' : 'wins') + ' · ' + r.played + ' ' + (r.played === 1 ? 'game' : 'games') + '</div></div>' +
-      '<div class="pts">' + fmtNum(r.pts) + '<small>pts</small></div>' +
-      '<div class="bar-track"><div class="bar" style="width:' + (maxPts > 0 ? (r.pts / maxPts * 100) : 0) + '%"></div></div>' +
+        '<div class="sub">' + fmtNum(r.pts) + ' pts · ' + r.wins + ' ' + (r.wins === 1 ? 'win' : 'wins') + ' · ' + r.played + ' ' + (r.played === 1 ? 'game' : 'games') + '</div></div>' +
+      '<div class="pts">' + fmtNum(r.rating) + '<small>per game</small></div>' +
+      '<div class="bar-track"><div class="bar" style="width:' + (maxRating > 0 ? (r.rating / maxRating * 100) : 0) + '%"></div></div>' +
     '</div>';
   }).join('');
   html += '</div>';
@@ -590,7 +603,7 @@ function renderStandings(){
   // race chart card
   if(ms.length >= 1 && state.players.length >= 2){
     html += '<div class="card" id="raceCard"><div class="card-h"><h2>The race</h2></div>' +
-      '<p class="card-sub">Total points after each game</p>' +
+      '<p class="card-sub">Points per game after each game — flat stretches mean they sat one out</p>' +
       '<div class="race-wrap" id="raceWrap">' +
         '<div id="raceSvg"></div>' +
         '<div class="crosshair" id="raceX"></div>' +
@@ -632,12 +645,13 @@ function renderRace(){
   const H = 224;
   const padL = 34, padR = 16, padT = 12, padB = 26;
 
-  // cumulative points per player, index 0 = start
-  const series = state.players.map(p => ({ p, pts: [0] }));
+  // rating trajectory per player, index 0 = start; flat segments = sat that one out
+  const series = state.players.map(p => ({ p, pts: [0], acc: 0, n: 0 }));
   for(const m of ms){
     for(const s of series){
       const r = m.results.find(x => x.playerId === s.p.id);
-      s.pts.push(s.pts[s.pts.length - 1] + (r ? pointsFor(r.rank, m.results.length) : 0));
+      if(r){ s.acc += pointsFor(r, m); s.n++; }
+      s.pts.push(s.n ? ratingOf(s.acc, s.n) : 0);
     }
   }
   const N = ms.length;
@@ -670,7 +684,7 @@ function renderRace(){
     g += '<circle cx="' + X(N).toFixed(1) + '" cy="' + Y(s.pts[N]).toFixed(1) + '" r="4.5" fill="' + c + '" stroke="var(--card)" stroke-width="2"/>';
   }
   // selective direct label: the current leader only
-  if(lead && lead.pts > 0){
+  if(lead && lead.rating > 0){
     const s = series.find(x => x.p.id === lead.p.id);
     if(s){
       const ly = Math.max(Y(s.pts[N]) - 9, 11);
@@ -767,16 +781,18 @@ function matchCard(m){
   const rows = sorted.map(r => {
     const p = playerById(r.playerId);
     if(!p) return '';
-    const pts = pointsFor(r.rank, P);
+    const pts = pointsFor(r, m);
     return '<div class="pl">' + (r.rank ? ordinal(r.rank) : '—') + '</div>' +
       '<span class="mdot" style="--pc:' + slotVar(p) + '"></span>' +
       '<div class="rn">' + esc(p.name) + '</div>' +
       '<div class="sc">' + (r.score != null ? fmtNum(r.score) : '') + '</div>' +
       '<div class="pp">' + (pts > 0 ? '+' + fmtNum(pts) : '·') + '</div>';
   }).join('');
+  const w = m.weight || 2;
   return '<div class="card match">' +
     '<div class="m-top"><h3>' + esc(m.game) + '</h3>' +
-      '<span class="m-meta">' + P + ' players' + (m.mode === 'scores' && m.lowWins ? ' · low wins' : '') + '</span></div>' +
+      '<span class="m-meta">' + P + ' players' + (w !== 2 ? ' · ' + WEIGHT_LABELS[w].toLowerCase() + ' ×' + w : '') +
+      (m.mode === 'scores' && m.lowWins ? ' · low wins' : '') + '</span></div>' +
     '<div class="res">' + rows + '</div>' +
     '<div class="m-actions"><button class="link-btn" data-edit="' + esc(m.id) + '">Edit</button></div>' +
   '</div>';
@@ -902,7 +918,8 @@ function openLogSheet(editId){
 
   if(editing){
     draft = {
-      id: editing.id, seq: editing.seq, lowWinsTouched: true,
+      id: editing.id, seq: editing.seq, lowWinsTouched: true, weightTouched: true,
+      weight: [1,2,3].includes(editing.weight) ? editing.weight : 2,
       game: editing.game, date: editing.date, mode: editing.mode, lowWins: editing.lowWins,
       participants: editing.results.map(r => r.playerId),
       winners: editing.mode === 'winner' ? editing.results.filter(r => r.rank === 1).map(r => r.playerId) : [],
@@ -911,7 +928,7 @@ function openLogSheet(editId){
     };
   } else {
     draft = {
-      id: null, seq: null, lowWinsTouched: false,
+      id: null, seq: null, lowWinsTouched: false, weightTouched: false, weight: 2,
       game: '', date: todayStr(), mode: 'winner', lowWins: false,
       participants: state.players.map(p => p.id),
       winners: [], order: [], scores: {}
@@ -929,6 +946,13 @@ function openLogSheet(editId){
 
     '<div class="field"><label for="fDate">When?</label>' +
       '<input class="tin" id="fDate" type="date" value="' + esc(draft.date) + '"></div>' +
+
+    '<div class="field"><label>How heavy a game is it?</label>' +
+      '<div class="seg" id="fWeight" role="group" aria-label="Game weight">' +
+        '<button data-weight="1" aria-pressed="false">Light ×1</button>' +
+        '<button data-weight="2" aria-pressed="false">Standard ×2</button>' +
+        '<button data-weight="3" aria-pressed="false">Heavy ×3</button>' +
+      '</div></div>' +
 
     '<div class="field"><label>Who played?</label><div class="chips" id="fWho"></div></div>' +
 
@@ -974,6 +998,11 @@ function openLogSheet(editId){
     applyGamePref();
     renderModeSeg(); renderModeArea();
   }));
+  $$('#fWeight button').forEach(b => b.addEventListener('click', () => {
+    draft.weight = Number(b.dataset.weight);
+    draft.weightTouched = true;
+    renderWeightSeg();
+  }));
   $('#fSave').addEventListener('click', saveMatch);
   const del = $('#fDelete');
   if(del) armButton(del, 'Really delete?', () => {
@@ -981,15 +1010,25 @@ function openLogSheet(editId){
     save(); closeSheet(); renderAll(); toast('Game deleted.');
   });
 
-  renderWho(); renderModeSeg(); renderModeArea();
+  renderWho(); renderModeSeg(); renderWeightSeg(); renderModeArea();
 }
 
-/* Apply the remembered per-game "lowest wins" default — but never override an
-   explicit toggle in this sheet, or the stored flag of a match being edited. */
+/* Apply the remembered per-game defaults (weight, lowest-wins) — but never
+   override an explicit choice in this sheet or the values of an edited match. */
 function applyGamePref(){
-  if(!draft || draft.mode !== 'scores' || draft.lowWinsTouched) return;
+  if(!draft) return;
   const pref = state.gamePrefs[draft.game.trim().toLowerCase()];
-  draft.lowWins = pref ? !!pref.lowWins : false;
+  if(!draft.weightTouched){
+    draft.weight = (pref && [1,2,3].includes(pref.weight)) ? pref.weight : 2;
+    renderWeightSeg();
+  }
+  if(draft.mode === 'scores' && !draft.lowWinsTouched){
+    draft.lowWins = pref ? !!pref.lowWins : false;
+  }
+}
+
+function renderWeightSeg(){
+  $$('#fWeight button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.weight) === draft.weight)));
 }
 
 function renderWho(){
@@ -1135,15 +1174,21 @@ function saveMatch(){
     const entries = ps.map(p => ({ playerId: p.id, score: scoreNum(draft.scores[p.id]) }));
     const ranks = ranksFromScores(entries, draft.lowWins);
     results = entries.map(e => ({ playerId: e.playerId, score: e.score, rank: ranks.get(e.playerId) }));
-    state.gamePrefs[game.toLowerCase()] = { lowWins: draft.lowWins };
   }
+
+  const prefKey = game.toLowerCase();
+  const prevPref = state.gamePrefs[prefKey] || {};
+  state.gamePrefs[prefKey] = {
+    lowWins: draft.mode === 'scores' ? !!draft.lowWins : !!prevPref.lowWins,
+    weight: draft.weight
+  };
 
   if(draft.id){
     const i = state.matches.findIndex(m => m.id === draft.id);
-    state.matches[i] = { id: draft.id, seq: draft.seq, game, date: draft.date, mode: draft.mode, lowWins: !!draft.lowWins, results };
+    state.matches[i] = { id: draft.id, seq: draft.seq, game, date: draft.date, mode: draft.mode, lowWins: !!draft.lowWins, weight: draft.weight, results };
     toast('Game updated.');
   } else {
-    state.matches.push({ id: uid(), seq: ++seqCounter, game, date: draft.date, mode: draft.mode, lowWins: !!draft.lowWins, results });
+    state.matches.push({ id: uid(), seq: ++seqCounter, game, date: draft.date, mode: draft.mode, lowWins: !!draft.lowWins, weight: draft.weight, results });
     const winners = results.filter(r => r.rank === 1).map(r => playerById(r.playerId)).filter(Boolean).map(p => p.name);
     toast(winners.length ? winners.join(' & ') + ' take' + (winners.length > 1 ? '' : 's') + ' it! 🏆' : 'Game saved.');
     confetti();
@@ -1200,12 +1245,15 @@ function openSettingsSheet(){
     '<div class="field"><label for="sStart">First day of the trip</label>' +
       '<input class="tin" id="sStart" type="date" value="' + esc(state.trip.start) + '"></div>' +
 
-    '<div class="field"><label>Scoring</label>' +
-      Object.entries(SCHEMES).map(([k,v]) =>
-        '<label class="radio-opt"><input type="radio" name="scheme" value="' + k + '"' + (state.settings.scheme === k ? ' checked' : '') + '>' +
-        '<span><span class="r-title">' + v.label + '</span><br><span class="r-sub">' + v.sub + '</span></span></label>'
-      ).join('') +
-      '<p class="hint" style="margin-top:6px">Games store placements, not points — switching here rescores the whole week instantly. Quick “Winner” entries award points to winners only; tied players share the better place.</p></div>' +
+    '<div class="field"><label>How scoring works</label>' +
+      '<p class="hint" style="font-size:13.5px">Beat a player, earn the game’s weight in points: Light ×1, Standard ×2, Heavy ×3. ' +
+      'Winning a heavy 9-player game pays 24; edging a light duel pays 1. The board ranks <b>points per game</b> ' +
+      '(with two “ghost games” added), so skipping a night doesn’t sink you — and one lucky win can’t clinch the week. ' +
+      'Ties count as level, not beaten; quick “Winner” entries pay winners only.</p></div>' +
+
+    '<div class="field"><label>Put it on your phone</label>' +
+      '<p class="hint">Open this page in Safari (iPhone) or Chrome (Android), then Share → <b>Add to Home Screen</b>. ' +
+      'It becomes a full-screen app, works offline, and the scoreboard lives on that phone.</p></div>' +
 
     '<div class="field"><label>Your data</label>' +
       '<div style="display:flex; gap:10px; flex-wrap:wrap">' +
@@ -1227,8 +1275,6 @@ function openSettingsSheet(){
     if(name) state.trip.name = name.slice(0,60);
     const st = $('#sStart').value;
     if(/^\d{4}-\d{2}-\d{2}$/.test(st)) state.trip.start = st;
-    const sch = document.querySelector('input[name="scheme"]:checked');
-    if(sch) state.settings.scheme = sch.value;
     save(); closeSheet(); renderAll();
   });
 
@@ -1348,6 +1394,11 @@ load();
 renderAll();
 if(!storageOk){
   toast('Private browsing? Data can’t be saved on this device.');
+}
+
+// Offline support when served over http(s); a no-op for file:// and sandboxed embeds.
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
 }
 </script>
 </body>
