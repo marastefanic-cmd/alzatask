@@ -1,1153 +1,1253 @@
 <!doctype html>
-<html lang="cs">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Interaktivní obchodní kalkulátor přínosu služby Pošli to AlzaBoxem pro e-shopy – úspory na logistice, růst objednávek a návratnost zapojení.">
-<title>Pošli to AlzaBoxem · Obchodní kalkulátor</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%231C7F44'/%3E%3Crect x='8' y='8' width='7' height='7' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='17' y='8' width='7' height='7' rx='2' fill='%23fff' opacity='.45'/%3E%3Crect x='8' y='17' width='7' height='7' rx='2' fill='%23fff' opacity='.45'/%3E%3Crect x='17' y='17' width='7' height='7' rx='2' fill='%23fff' opacity='.9'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Game Week — Vacation Scoreboard</title>
 <style>
-/* ============ tokens ============ */
+/* ---------- tokens ---------- */
 :root{
-  --page:#F5F7F6; --surface:#FFFFFF; --surface-2:#EFF3F0;
-  --ink:#16211C; --ink-2:#48584F; --muted:#5C6B63;
-  --line:#E2E8E4; --line-2:#CFD8D2;
-  --accent:#1C7F44; --accent-strong:#146033; --accent-ink:#FFFFFF;
-  --accent-soft:rgba(28,127,68,.09);
-  --c-blue:#3D6FA6; --c-amber:#B07C1E; --c-green:#218A4C; --c-neg:#B4402F;
-  --shadow:0 1px 2px rgba(22,33,28,.05),0 4px 16px rgba(22,33,28,.06);
-  --r:12px; --r-s:8px;
+  color-scheme: light;
+  --page:#f9f9f7; --card:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --good:#006300; --danger:#d03b3b;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --btn-ink:#0b0b0b; --btn-text:#fcfcfb; --wash:rgba(11,11,11,.05);
 }
 @media (prefers-color-scheme: dark){
-  :root{
-    --page:#0F1512; --surface:#18201D; --surface-2:#1F2925;
-    --ink:#E8EEE9; --ink-2:#ADBAB1; --muted:#8A988F;
-    --line:#2A342E; --line-2:#3A463F;
-    --accent:#3FA468; --accent-strong:#57BD80; --accent-ink:#0C1410;
-    --accent-soft:rgba(63,164,104,.14);
-    --c-blue:#4F8BC9; --c-amber:#BD8524; --c-green:#3FA468; --c-neg:#D26A59;
-    --shadow:0 1px 2px rgba(0,0,0,.25),0 4px 16px rgba(0,0,0,.28);
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --page:#0d0d0d; --card:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
+    --good:#0ca30c; --danger:#e66767;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --btn-ink:#f2f1ec; --btn-text:#0d0d0d; --wash:rgba(255,255,255,.07);
   }
-}
-:root[data-theme="light"]{
-  --page:#F5F7F6; --surface:#FFFFFF; --surface-2:#EFF3F0;
-  --ink:#16211C; --ink-2:#48584F; --muted:#5C6B63;
-  --line:#E2E8E4; --line-2:#CFD8D2;
-  --accent:#1C7F44; --accent-strong:#146033; --accent-ink:#FFFFFF;
-  --accent-soft:rgba(28,127,68,.09);
-  --c-blue:#3D6FA6; --c-amber:#B07C1E; --c-green:#218A4C; --c-neg:#B4402F;
-  --shadow:0 1px 2px rgba(22,33,28,.05),0 4px 16px rgba(22,33,28,.06);
 }
 :root[data-theme="dark"]{
-  --page:#0F1512; --surface:#18201D; --surface-2:#1F2925;
-  --ink:#E8EEE9; --ink-2:#ADBAB1; --muted:#8A988F;
-  --line:#2A342E; --line-2:#3A463F;
-  --accent:#3FA468; --accent-strong:#57BD80; --accent-ink:#0C1410;
-  --accent-soft:rgba(63,164,104,.14);
-  --c-blue:#4F8BC9; --c-amber:#BD8524; --c-green:#3FA468; --c-neg:#D26A59;
-  --shadow:0 1px 2px rgba(0,0,0,.25),0 4px 16px rgba(0,0,0,.28);
+  color-scheme: dark;
+  --page:#0d0d0d; --card:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
+  --good:#0ca30c; --danger:#e66767;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --btn-ink:#f2f1ec; --btn-text:#0d0d0d; --wash:rgba(255,255,255,.07);
 }
 
-/* ============ base ============ */
+/* ---------- base ---------- */
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html,body{margin:0}
 body{
-  margin:0; background:var(--page); color:var(--ink);
-  font:400 15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;
+  background:var(--page); color:var(--ink);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color:transparent;
 }
-h1,h2,h3{margin:0; line-height:1.2; text-wrap:balance}
-p{margin:0}
-button{font:inherit; cursor:pointer}
-a{color:var(--accent); text-decoration:none}
-a:hover{text-decoration:underline}
-:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
-.num{font-variant-numeric:tabular-nums}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
+input,select{font:inherit; color:var(--ink)}
+:focus-visible{outline:2px solid var(--ink); outline-offset:2px; border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif; text-wrap:balance; margin:0}
 
-.wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+.shell{max-width:640px; margin:0 auto; padding:0 14px}
 
-/* ============ header ============ */
-header.top{
-  border-bottom:1px solid var(--line); background:var(--surface);
-}
-.top-in{display:flex; align-items:center; gap:14px; padding:14px 0}
-.mark{display:flex; align-items:center; gap:12px; min-width:0}
-.mark svg{flex:none}
-.mark .t{min-width:0}
-.eyebrow{font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
-.mark strong{display:block; font-size:17px; font-weight:700; letter-spacing:-.01em; white-space:nowrap}
-.top-actions{margin-left:auto; display:flex; gap:8px; align-items:center}
-@media (max-width:680px){
-  .top-in{flex-wrap:wrap; padding:12px 0}
-  .top-actions{margin-left:0; width:100%; justify-content:flex-end}
-  .btn{padding:7px 10px; font-size:12.5px}
-}
-.btn{
-  display:inline-flex; align-items:center; gap:7px;
-  border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
-  border-radius:var(--r-s); padding:8px 13px; font-size:13.5px; font-weight:600;
-}
-.btn:hover{border-color:var(--muted)}
-.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
-.btn.primary:hover{background:var(--accent-strong); border-color:var(--accent-strong)}
-.btn svg{flex:none}
-.icon-btn{padding:8px}
+/* ---------- header ---------- */
+.app-head{display:flex; align-items:center; gap:10px; padding:18px 0 10px}
+.app-head h1{font-size:24px; font-weight:800; letter-spacing:-.01em; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1}
+.day-chip{flex:none; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink2); border:1px solid var(--grid); border-radius:999px; padding:4px 10px; background:var(--card)}
+.gear{flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
+  border:1px solid var(--grid); background:var(--card); color:var(--ink2)}
+.gear svg{width:20px; height:20px}
+.gear:active{background:var(--wash)}
 
-/* ============ intro ============ */
-.intro{padding:34px 0 6px}
-.intro h1{font-size:clamp(24px,3.4vw,34px); font-weight:750; letter-spacing:-.02em; max-width:27ch}
-.intro p.lead{margin-top:10px; max-width:62ch; color:var(--ink-2); font-size:16px}
-.props{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
-.prop{
-  display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; color:var(--ink-2);
-  background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:7px 14px 7px 9px;
-}
-.prop .dot{width:22px;height:22px;border-radius:7px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+/* ---------- cards ---------- */
+.card{background:var(--card); border:1px solid var(--ring); border-radius:14px; padding:16px; margin:12px 0}
+.card-h{display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px}
+.card-h h2{font-size:17px; font-weight:800}
+.card-sub{font-size:13px; color:var(--muted); margin:0 0 12px}
 
-/* ============ layout ============ */
-main.grid{display:grid; grid-template-columns:350px 1fr; gap:22px; align-items:start; padding:22px 0 8px}
-@media (max-width:960px){ main.grid{grid-template-columns:1fr} }
+/* ---------- stat tiles ---------- */
+.tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0}
+.tile{background:var(--card); border:1px solid var(--ring); border-radius:14px; padding:12px 14px; min-width:0}
+.tile .t-label{font-size:12px; color:var(--muted)}
+.tile .t-value{font-size:21px; font-weight:650; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
-/* ============ panel / inputs ============ */
-.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
-aside .panel{position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; scrollbar-width:thin}
-@media (max-width:960px){ aside .panel{position:static; max-height:none} }
-.panel-h{padding:16px 18px 12px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; justify-content:space-between; gap:8px}
-.panel-h h2{font-size:15px; font-weight:700}
-.scen{padding:12px 18px 0}
-.scen label{display:block; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
-.scen select{
-  width:100%; border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
-  border-radius:var(--r-s); padding:8px 10px; font:600 13.5px/1.3 inherit; cursor:pointer;
-}
-.chip{
-  border:1px solid var(--line-2); background:var(--surface); color:var(--ink-2);
-  border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:600;
-}
-#resetBtn{border:none; background:none; color:var(--muted); font-size:12.5px; font-weight:600; text-decoration:underline; text-underline-offset:2px; padding:4px 2px; cursor:pointer}
-#resetBtn:hover{color:var(--ink-2)}
-@media (pointer:coarse){
-  input[type=range]{height:34px}
-  input[type=range]::-webkit-slider-thumb{width:22px; height:22px; margin-top:-8.5px}
-  input[type=range]::-moz-range-thumb{width:19px; height:19px}
-  .btn,.chip{min-height:42px}
-  .field-l input.numin{min-height:38px}
-}
-fieldset{border:0; margin:0; padding:10px 18px 16px}
-fieldset + fieldset{border-top:1px solid var(--line)}
-legend{padding:14px 0 2px; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
-.field{margin-top:12px}
-.field-l{display:flex; justify-content:space-between; align-items:baseline; gap:8px}
-.field-l label{font-size:13.5px; font-weight:600; color:var(--ink-2)}
-.field-l .val{display:flex; align-items:baseline; gap:4px}
-.field-l input.numin{
-  width:86px; text-align:right; border:1px solid var(--line-2); background:var(--surface);
-  color:var(--ink); border-radius:6px; padding:4px 7px; font:600 13.5px/1.3 inherit;
-  font-variant-numeric:tabular-nums;
-}
-.field-l .unit{font-size:12px; color:var(--muted); min-width:38px}
-input[type=range]{
-  width:100%; margin:10px 0 0; height:22px; background:transparent; -webkit-appearance:none; appearance:none;
-}
-input[type=range]::-webkit-slider-runnable-track{height:5px; border-radius:3px; background:linear-gradient(to right, var(--accent) var(--fill,50%), var(--line-2) var(--fill,50%))}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:17px; height:17px; margin-top:-6px; border-radius:50%; background:var(--surface); border:2.5px solid var(--accent); box-shadow:0 1px 3px rgba(0,0,0,.2)}
-input[type=range]::-moz-range-track{height:5px; border-radius:3px; background:var(--line-2)}
-input[type=range]::-moz-range-progress{height:5px; border-radius:3px; background:var(--accent)}
-input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:var(--surface); border:2.5px solid var(--accent)}
-.hint{margin-top:6px; font-size:12px; color:var(--muted)}
+/* ---------- standings ---------- */
+.standing{display:grid; grid-template-columns:22px 42px minmax(0,1fr) auto; gap:0 12px; align-items:center; padding:10px 0}
+.standing + .standing{border-top:1px solid var(--grid)}
+.standing .rank{font-size:14px; font-weight:700; color:var(--muted); text-align:center}
+.standing .who{min-width:0}
+.standing .who .nm{font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.standing .who .sub{font-size:12.5px; color:var(--muted)}
+.standing .bar-track{grid-column:3 / 5; margin-top:6px; height:18px; position:relative}
+.standing .bar{height:18px; border-radius:0 4px 4px 0; background:var(--pc); min-width:2px}
+.standing .pts{font-size:21px; font-weight:650; text-align:right}
+.standing.lead .pts{font-size:24px}
+.standing .pts small{display:block; font-size:11px; font-weight:400; color:var(--muted); margin-top:-2px}
 
-/* ============ results ============ */
-.results{display:flex; flex-direction:column; gap:22px; min-width:0}
-.hero{
-  background:linear-gradient(135deg, var(--accent-soft), transparent 60%), var(--surface);
-  border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:22px 24px;
-}
-.hero .k{font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
-.hero .v{font-size:clamp(34px,4.6vw,48px); font-weight:750; letter-spacing:-.03em; color:var(--accent); line-height:1.05; margin-top:6px}
-.hero .v.neg{color:var(--c-neg)}
-.hero .s{margin-top:8px; color:var(--ink-2); font-size:14px; max-width:60ch}
-.tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
-@media (max-width:1100px){.tiles{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:460px){.tiles{grid-template-columns:1fr}}
-.tile{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; box-shadow:var(--shadow)}
-.tile .k{font-size:12px; font-weight:600; color:var(--muted)}
-.tile .v{font-size:22px; font-weight:700; letter-spacing:-.01em; margin-top:4px}
-.tile .v.pos{color:var(--accent)}
-.tile .v.neg{color:var(--c-neg)}
-.tile .s{font-size:12px; color:var(--muted); margin-top:3px}
+/* meeple avatar */
+.mavatar{position:relative; width:42px; height:42px; display:grid; place-items:center}
+.mavatar svg.meeple{width:34px; height:34px; color:var(--pc); display:block}
+.mavatar .crown{position:absolute; top:-9px; left:50%; transform:translateX(-50%) rotate(-8deg); width:18px; height:13px}
+.mdot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--pc); flex:none}
 
-.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
-.card-h{padding:16px 18px 0}
-.card-h h3{font-size:15.5px; font-weight:700}
-.card-h .sub{font-size:13px; color:var(--muted); margin-top:3px}
-.card-b{padding:12px 18px 18px}
-.charts{display:grid; grid-template-columns:1fr 1fr; gap:22px}
-@media (max-width:860px){.charts{grid-template-columns:1fr}}
-.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:8px}
-.legend span{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2); font-weight:600}
-.legend i{width:10px; height:10px; border-radius:3px; display:inline-block}
-svg text{font-family:inherit}
+/* ---------- race chart ---------- */
+.race-wrap{position:relative; touch-action:pan-y}
+.race-wrap svg{display:block}
+.race-wrap text{font:11.5px system-ui,-apple-system,"Segoe UI",sans-serif; font-variant-numeric:tabular-nums}
+.crosshair{position:absolute; top:0; width:1px; background:var(--baseline); pointer-events:none; display:none}
+.race-tip{position:absolute; z-index:5; pointer-events:none; display:none; min-width:130px; max-width:210px;
+  background:var(--card); border:1px solid var(--grid); border-radius:10px; padding:8px 10px;
+  box-shadow:0 4px 14px rgba(0,0,0,.14); font-size:12.5px}
+.race-tip .tt-title{font-weight:700; margin-bottom:4px; color:var(--ink)}
+.race-tip .tt-row{display:flex; align-items:center; gap:6px; color:var(--ink2); padding:1px 0}
+.race-tip .tt-row b{margin-left:auto; font-weight:650; color:var(--ink); font-variant-numeric:tabular-nums}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px}
+.legend .lg{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink2)}
 
-/* breakdown rows */
-.brow{display:grid; grid-template-columns:190px 1fr 110px; gap:10px; align-items:center; padding:9px 0}
-.brow + .brow{border-top:1px solid var(--line)}
-@media (max-width:560px){.brow{grid-template-columns:1fr; gap:4px} .brow .bval{text-align:left}}
-.brow .bl{font-size:13.5px; font-weight:600; color:var(--ink-2)}
-.brow .bl small{display:block; font-weight:400; color:var(--muted); font-size:12px}
-.brow .bar{height:14px; border-radius:4px; background:var(--surface-2); overflow:hidden; position:relative}
-.brow .bar i{position:absolute; inset:0 auto 0 0; border-radius:4px; background:var(--c-green); min-width:2px; transition:width .35s ease}
-.brow .bar i.neg{background:var(--c-neg)}
-.brow .bval{font-size:14px; font-weight:700; text-align:right}
-.brow .bval.neg{color:var(--c-neg)}
+/* ---------- history ---------- */
+.day-h{display:flex; align-items:baseline; gap:8px; margin:18px 2px 6px}
+.day-h h2{font-size:15px; font-weight:800}
+.day-h span{font-size:12px; color:var(--muted)}
+.match .m-top{display:flex; align-items:baseline; gap:8px}
+.match .m-top h3{font-size:16px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.match .m-top .m-meta{font-size:12px; color:var(--muted); flex:none; margin-left:auto}
+.match .res{display:grid; grid-template-columns:34px 12px minmax(0,1fr) auto auto; gap:4px 8px; align-items:center; margin-top:10px}
+.match .res .pl{font-size:12px; font-weight:700; color:var(--muted)}
+.match .res .rn{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14.5px}
+.match .res .sc{font-size:13px; color:var(--ink2); font-variant-numeric:tabular-nums; text-align:right}
+.match .res .pp{font-size:13px; font-weight:650; color:var(--ink); font-variant-numeric:tabular-nums; text-align:right; min-width:34px}
+.match .m-actions{display:flex; gap:14px; margin-top:10px}
+.link-btn{font-size:13.5px; font-weight:650; color:var(--ink2); text-decoration:underline; text-underline-offset:3px}
+.link-btn.danger{color:var(--danger)}
 
-/* sensitivity */
-table.sens{border-collapse:separate; border-spacing:0; width:100%; font-size:13.5px}
-.sens th,.sens td{padding:9px 10px; text-align:right; border-bottom:1px solid var(--line)}
-.sens thead th{font-size:12px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line-2)}
-.sens tbody th{text-align:left; font-weight:600; color:var(--ink-2); font-size:12.5px; white-space:nowrap}
-.sens td{font-variant-numeric:tabular-nums; font-weight:600}
-.sens td.hot{outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px}
-.sens-note{font-size:12.5px; color:var(--muted); margin-top:10px}
-.scomp thead th:first-child{text-align:left}
-.scomp tr.cur th,.scomp tr.cur td{background:var(--accent-soft)}
-.scomp .userow{
-  border:none; background:none; padding:2px 4px; color:var(--accent); font:600 12.5px/1.3 inherit;
-  cursor:pointer; text-decoration:underline; text-underline-offset:2px;
-}
-.scomp .userow:hover{color:var(--accent-strong)}
-.scomp tbody th small{display:block; font-weight:400; color:var(--muted); font-size:11px}
+/* ---------- players ---------- */
+.player-row{display:flex; align-items:center; gap:12px; padding:10px 0}
+.player-row + .player-row{border-top:1px solid var(--grid)}
+.player-row .pinfo{min-width:0; flex:1}
+.player-row .pinfo .nm{font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.player-row .pinfo .sub{font-size:12.5px; color:var(--muted)}
+.add-row{display:flex; gap:8px; margin-top:6px}
+.add-row input{flex:1; min-width:0}
 
-/* arguments */
-.args{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-@media (max-width:860px){.args{grid-template-columns:1fr}}
-.arg{border:1px solid var(--line); border-radius:var(--r-s); padding:13px 15px; background:var(--surface)}
-.arg .n{display:inline-grid; place-items:center; width:22px; height:22px; border-radius:7px; background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:700; margin-bottom:8px}
-.arg h4{margin:0 0 4px; font-size:14px; font-weight:700}
-.arg p{font-size:13.5px; color:var(--ink-2)}
-.arg strong{color:var(--accent); font-weight:700}
-.arg strong.neg{color:var(--c-neg)}
+/* ---------- forms ---------- */
+.field{margin:14px 0}
+.field label{display:block; font-size:13px; font-weight:650; color:var(--ink2); margin-bottom:6px}
+.tin{width:100%; background:var(--page); border:1px solid var(--grid); border-radius:10px; padding:10px 12px}
+.tin:focus{outline:2px solid var(--ink); outline-offset:-1px}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; font-weight:700;
+  border-radius:12px; padding:12px 18px; background:var(--btn-ink); color:var(--btn-text)}
+.btn:active{opacity:.85}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--baseline)}
+.btn.small{padding:8px 14px; font-size:14px; border-radius:10px}
+.btn.danger-solid{background:var(--danger); color:#fff}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+.seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px; background:var(--page);
+  border:1px solid var(--grid); border-radius:12px; padding:4px}
+.seg button{padding:8px 4px; border-radius:9px; font-size:14px; font-weight:650; color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--btn-ink); color:var(--btn-text)}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--baseline); border-radius:999px;
+  padding:7px 13px; font-size:14.5px; font-weight:650; color:var(--ink2); position:relative}
+.chip .mdot{width:12px; height:12px}
+.chip[aria-pressed="true"]{border-color:var(--ink); color:var(--ink); background:var(--wash)}
+.chip .place-badge{position:absolute; top:-7px; right:-5px; min-width:18px; height:18px; border-radius:9px;
+  background:var(--btn-ink); color:var(--btn-text); font-size:11px; font-weight:800; display:grid; place-items:center; padding:0 4px}
+.score-row{display:grid; grid-template-columns:12px minmax(0,1fr) 34px 88px; gap:10px; align-items:center; padding:7px 0}
+.score-row .nm{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:650}
+.score-row .place{font-size:12px; font-weight:700; color:var(--muted); text-align:right}
+.score-row input{text-align:right; font-variant-numeric:tabular-nums}
+.switch{display:flex; align-items:center; gap:10px; font-size:14.5px; font-weight:650; color:var(--ink2); padding:6px 0}
+.switch input{width:18px; height:18px; accent-color:var(--btn-ink)}
+.radio-opt{display:flex; gap:10px; align-items:flex-start; padding:9px 0}
+.radio-opt input{margin-top:3px; width:17px; height:17px; accent-color:var(--btn-ink)}
+.radio-opt .r-title{font-weight:650}
+.radio-opt .r-sub{font-size:13px; color:var(--muted)}
+.form-err{display:none; color:var(--danger); font-size:13.5px; font-weight:650; margin:10px 0 0}
+.form-err.show{display:block}
+.hint{font-size:12.5px; color:var(--muted)}
 
-/* methodology */
-details.method{border:1px solid var(--line); border-radius:var(--r); background:var(--surface); box-shadow:var(--shadow)}
-details.method summary{
-  list-style:none; cursor:pointer; padding:16px 18px; font-size:15px; font-weight:700;
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-}
-details.method summary::-webkit-details-marker{display:none}
-details.method summary .chev{transition:transform .2s ease; color:var(--muted)}
-details.method[open] summary .chev{transform:rotate(180deg)}
-.method-b{padding:0 18px 18px; color:var(--ink-2); font-size:14px}
-.method-b h4{margin:16px 0 6px; font-size:13px; font-weight:700; color:var(--ink); letter-spacing:.06em; text-transform:uppercase}
-.method-b ul{margin:6px 0; padding-left:20px}
-.method-b li{margin:4px 0}
-.method-b code{
-  font:600 12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  background:var(--surface-2); border:1px solid var(--line); border-radius:5px; padding:1px 6px;
-}
-.formulas{display:grid; gap:6px; margin-top:8px}
+/* ---------- empty states ---------- */
+.empty{text-align:center; padding:36px 20px}
+.empty .big{font-size:40px; line-height:1; margin-bottom:10px}
+.empty h2{font-size:19px; font-weight:800; margin-bottom:6px}
+.empty p{color:var(--ink2); font-size:14.5px; margin:0 0 16px}
 
-/* footer */
-.about{padding:8px 0 8px; color:var(--ink-2); font-size:14px; max-width:75ch}
-footer.foot{border-top:1px solid var(--line); margin-top:30px; padding:18px 0 34px; color:var(--muted); font-size:12.5px}
-footer.foot .wrap{display:flex; gap:14px; flex-wrap:wrap; justify-content:space-between}
+/* ---------- tab bar ---------- */
+.tabbar{position:fixed; left:0; right:0; bottom:0; z-index:20;
+  background:var(--card); border-top:1px solid var(--grid);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  display:grid; grid-template-columns:1fr 1fr auto 1fr 1fr; align-items:center; gap:2px}
+.tabbar .tab{display:grid; justify-items:center; gap:2px; padding:6px 2px; border-radius:10px;
+  font-size:11px; font-weight:650; color:var(--muted)}
+.tabbar .tab svg{width:22px; height:22px}
+.tabbar .tab[aria-selected="true"]{color:var(--ink)}
+.tabbar .log-btn{width:54px; height:54px; margin:0 8px; border-radius:50%; background:var(--btn-ink); color:var(--btn-text);
+  display:grid; place-items:center; box-shadow:0 4px 12px rgba(0,0,0,.22); transform:translateY(-10px)}
+.tabbar .log-btn svg{width:26px; height:26px}
+.tabbar .log-btn[disabled]{opacity:.35}
 
-/* tooltip & toast */
-#tip{
-  position:fixed; z-index:50; pointer-events:none; display:none; max-width:240px;
-  background:var(--ink); color:var(--page); border-radius:8px; padding:8px 11px;
-  font-size:12.5px; line-height:1.45; box-shadow:0 4px 14px rgba(0,0,0,.25);
-}
-#tip b{font-weight:700}
-#toast{
-  position:fixed; left:50%; bottom:26px; transform:translate(-50%,12px); z-index:60;
-  background:var(--ink); color:var(--page); border-radius:999px; padding:9px 18px;
-  font-size:13.5px; font-weight:600; opacity:0; transition:opacity .25s ease, transform .25s ease; pointer-events:none;
-}
-#toast.show{opacity:1; transform:translate(-50%,0)}
-#mobileKpi{
-  display:none; position:fixed; z-index:40; left:50%; bottom:14px; transform:translateX(-50%);
-  background:var(--accent); color:var(--accent-ink); border:none; border-radius:999px;
-  padding:10px 20px; font-size:14px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.25);
-  white-space:nowrap; max-width:calc(100vw - 32px);
-}
-#mobileKpi b{font-weight:750; font-variant-numeric:tabular-nums}
-@media (max-width:960px){
-  #mobileKpi{display:block}
-  body{padding-bottom:70px}
-  #toast{bottom:78px}
-}
-@media print{ #mobileKpi{display:none} }
-@media (prefers-reduced-motion:reduce){
-  *{transition:none !important; animation:none !important; scroll-behavior:auto !important}
-}
+/* ---------- sheets ---------- */
+.sheet-host{position:fixed; inset:0; z-index:40; display:none}
+.sheet-host.open{display:block}
+.sheet-back{position:absolute; inset:0; background:rgba(0,0,0,.42)}
+.sheet{position:absolute; left:0; right:0; bottom:0; max-height:88%; overflow:auto; overscroll-behavior:contain;
+  background:var(--card); border-radius:18px 18px 0 0; padding:10px 18px calc(20px + env(safe-area-inset-bottom))}
+.sheet .grab{width:38px; height:4px; border-radius:2px; background:var(--baseline); margin:4px auto 8px}
+.sheet .sh-head{display:flex; align-items:center; gap:10px; margin-bottom:2px}
+.sheet .sh-head h2{font-size:19px; font-weight:800; flex:1}
+.sheet .close{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; color:var(--ink2); background:var(--wash)}
+.sheet .foot{display:flex; gap:10px; margin-top:18px}
+.sheet .foot .btn{flex:1}
+@media (min-width:640px){ .sheet{left:50%; right:auto; transform:translateX(-50%); width:600px; border-radius:18px; bottom:24px} }
 
-/* section headings */
-.sect{margin-top:30px}
-.sect > .sh{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap}
-.sect h2{font-size:19px; font-weight:750; letter-spacing:-.01em}
-.sect .sh p{color:var(--muted); font-size:13.5px}
+/* ---------- toast ---------- */
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(96px + env(safe-area-inset-bottom));
+  z-index:60; background:var(--btn-ink); color:var(--btn-text); font-size:14px; font-weight:650;
+  padding:10px 16px; border-radius:12px; opacity:0; pointer-events:none; transition:opacity .2s; max-width:88%; text-align:center}
+.toast.show{opacity:1}
 
-/* ============ print ============ */
-.print-only{display:none}
-@media print{
-  :root,:root[data-theme="dark"]{
-    --page:#fff; --surface:#fff; --surface-2:#F1F4F2; --ink:#16211C; --ink-2:#48584F; --muted:#5C6B63;
-    --line:#D9DFDB; --line-2:#C4CCC7; --accent:#1C7F44; --accent-ink:#fff; --accent-soft:rgba(28,127,68,.08);
-    --c-blue:#3D6FA6; --c-amber:#B07C1E; --c-green:#218A4C; --c-neg:#B4402F; --shadow:none;
-  }
-  @page{size:A4; margin:14mm}
-  *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
-  body{font-size:12px; background:#fff}
-  .no-print, header.top .top-actions, .presets, aside, .props, footer .links{display:none !important}
-  main.grid{grid-template-columns:1fr; padding-top:6px}
-  .print-only{display:block}
-  .print-assumptions{font-size:11px; color:var(--ink-2); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:10px}
-  .card,.tile,.hero,.panel{box-shadow:none; break-inside:avoid}
-  .charts{grid-template-columns:1fr 1fr; gap:12px}
-  .sect{margin-top:16px; break-inside:avoid}
-  .hero .v{font-size:30px}
-  .tile .v{font-size:17px}
-  details.method{display:none}
-  .intro{padding-top:6px}
-  .intro h1{font-size:20px}
-  .intro p.lead{font-size:12px}
+/* ---------- confetti ---------- */
+.confetti{position:fixed; inset:0; pointer-events:none; z-index:70; overflow:hidden}
+.confetti i{position:absolute; width:8px; height:12px; border-radius:2px; will-change:transform; animation:cfall .95s ease-in forwards}
+@keyframes cfall{
+  0%{transform:translate(0,0) rotate(0); opacity:1}
+  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot)); opacity:0}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important; animation:none !important}
 }
 </style>
 </head>
 <body>
 
-<header class="top">
-  <div class="wrap top-in">
-    <div class="mark">
-      <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden="true">
-        <rect x="2" y="2" width="28" height="28" rx="7" fill="var(--accent)"/>
-        <rect x="8" y="8" width="7" height="7" rx="2" fill="var(--accent-ink)" opacity=".92"/>
-        <rect x="17" y="8" width="7" height="7" rx="2" fill="var(--accent-ink)" opacity=".45"/>
-        <rect x="8" y="17" width="7" height="7" rx="2" fill="var(--accent-ink)" opacity=".45"/>
-        <rect x="17" y="17" width="7" height="7" rx="2" fill="var(--accent-ink)" opacity=".92"/>
-      </svg>
-      <div class="t">
-        <span class="eyebrow">Obchodní kalkulátor</span>
-        <strong>Pošli to AlzaBoxem</strong>
-      </div>
-    </div>
-    <div class="top-actions no-print">
-      <button class="btn icon-btn" id="themeBtn" title="Přepnout tmavý/světlý režim" aria-label="Přepnout tmavý/světlý režim">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
-      </button>
-      <button class="btn" id="copyLinkBtn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
-        Zkopírovat odkaz
-      </button>
-      <button class="btn primary" id="printBtn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
-        Vytisknout shrnutí
-      </button>
-    </div>
-  </div>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-meeple" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 8c8 0 14 6 14 13 0 4-2 8-5 10 3 1 6 3 8 6 3 4 9 6 15 8 6 2 10 5 10 10 0 4-3 7-8 7-7 0-13-2-18-5-1 6 0 11 3 17 3 6 6 11 6 15H61c-3 0-4-2-5-5l-4-12c-1-3-3-3-4 0l-4 12c-1 3-2 5-5 5H25c0-4 3-9 6-15 3-6 4-11 3-17-5 3-11 5-18 5-5 0-8-3-8-7 0-5 4-8 10-10 6-2 12-4 15-8 2-3 5-5 8-6-3-2-5-6-5-10 0-7 6-13 14-13z"/>
+    </symbol>
+    <symbol id="i-crown" viewBox="0 0 48 34">
+      <path fill="#eda100" stroke="var(--card)" stroke-width="2" d="M6 30 L4 10 L15 19 L24 4 L33 19 L44 10 L42 30 Z"/>
+    </symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+        d="M7 4h10v5a5 5 0 0 1-10 0V4Zm10 1h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4m4 3v3m-4 3h8m-8 0c0-2 1.5-3 4-3s4 1 4 3"/>
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>
+    </symbol>
+    <symbol id="i-people" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+        d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 9c0-3 2.5-5 6-5s6 2 6 5M16 4.6a3.5 3.5 0 0 1 0 6.8M17.5 15.4c2.1.5 3.5 2 3.5 4.6"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+        d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7.5 7.5 0 0 0-2-1.2L14.6 3h-4l-.4 2.7a7.5 7.5 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.4 7.4 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7.5 7.5 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+    </symbol>
+  </defs>
+</svg>
 
-<div class="wrap intro">
-  <h1>Kolik vašemu e&#8209;shopu přinese Pošli to AlzaBoxem?</h1>
-  <p class="lead">Interaktivní podklad pro obchodní jednání. Zadejte čísla svého e-shopu a okamžitě uvidíte úsporu na logistice, přínos rychlejšího doručení i návratnost zapojení do služby.</p>
-  <div class="props">
-    <span class="prop"><span class="dot"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>Doručení už druhý den ráno, i o víkendu</span>
-    <span class="prop"><span class="dot"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M17 7l-5-5-5 5"/></svg></span>Nižší náklady na zpracování zásilek</span>
-    <span class="prop"><span class="dot"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 17 9 11l4 4 8-8"/><path d="M14 7h7v7"/></svg></span>Více dokončených objednávek</span>
-  </div>
+<div class="shell">
+  <header class="app-head">
+    <h1 id="tripName">Game Week</h1>
+    <span class="day-chip" id="dayChip">Day 1</span>
+    <button class="gear" id="btnSettings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
+  </header>
+
+  <main>
+    <section id="view-standings" role="tabpanel" aria-label="Standings"></section>
+    <section id="view-history" role="tabpanel" aria-label="History" hidden></section>
+    <section id="view-players" role="tabpanel" aria-label="Players" hidden></section>
+  </main>
 </div>
 
-<div class="wrap print-only">
-  <div class="print-assumptions" id="printAssumptions"></div>
+<nav class="tabbar" aria-label="Main">
+  <button class="tab" data-tab="standings" aria-selected="true"><svg aria-hidden="true"><use href="#i-trophy"/></svg>Standings</button>
+  <button class="tab" data-tab="history" aria-selected="false"><svg aria-hidden="true"><use href="#i-list"/></svg>History</button>
+  <button class="log-btn" id="btnLog" aria-label="Log a game"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+  <button class="tab" data-tab="players" aria-selected="false"><svg aria-hidden="true"><use href="#i-people"/></svg>Players</button>
+  <span></span>
+</nav>
+
+<div class="sheet-host" id="sheetHost" aria-hidden="true">
+  <div class="sheet-back" id="sheetBack"></div>
+  <div class="sheet" role="dialog" aria-modal="true" id="sheetBody"></div>
 </div>
 
-<main class="wrap grid">
-  <aside class="no-print" aria-label="Vstupní parametry">
-    <div class="panel">
-      <div class="panel-h">
-        <h2>Vstupy pro výpočet</h2>
-        <button id="resetBtn" title="Vrátit výchozí hodnoty">Reset</button>
-      </div>
-      <div class="scen">
-        <label for="scenarioSel">Modelový scénář</label>
-        <select id="scenarioSel"></select>
-        <p class="hint" id="scenarioNote"></p>
-      </div>
-      <form id="form">
-        <fieldset>
-          <legend>Váš e-shop</legend>
-          <div class="field" data-k="orders"></div>
-          <div class="field" data-k="aov"></div>
-          <div class="field" data-k="margin"></div>
-        </fieldset>
-        <fieldset>
-          <legend>Současná logistika</legend>
-          <div class="field" data-k="curShip"></div>
-          <div class="field" data-k="curMin"></div>
-          <div class="field" data-k="hourly"></div>
-          <p class="hint">Zadávejte vaše skutečné náklady bez DPH, a to za kanál, který AlzaBox reálně nahradí (ne průměr všech doprav).</p>
-        </fieldset>
-        <fieldset>
-          <legend>Se službou Pošli to AlzaBoxem</legend>
-          <div class="field" data-k="boxShip"></div>
-          <div class="field" data-k="boxMin"></div>
-          <div class="field" data-k="adoption"></div>
-          <div class="field" data-k="uplift"></div>
-          <div class="field" data-k="integration"></div>
-          <p class="hint">Cena za AlzaBox je orientační – upravte ji podle konkrétní nabídky. Růst objednávek se počítá jen ze zásilek doručovaných AlzaBoxem, ne z celého obratu.</p>
-        </fieldset>
-      </form>
-    </div>
-  </aside>
-
-  <section class="results" aria-label="Výsledky">
-    <div class="hero">
-      <div class="k">Celkový přínos v prvním roce</div>
-      <div class="v num" id="heroAnnual">–</div>
-      <p class="s" id="heroNote"></p>
-    </div>
-
-    <div class="tiles">
-      <div class="tile"><div class="k">Měsíční přínos</div><div class="v num pos" id="tMonthly">–</div><div class="s">úspory + marže z nových objednávek</div></div>
-      <div class="tile"><div class="k">Úspora na jedné zásilce</div><div class="v num" id="tPerParcel">–</div><div class="s">doprava + zpracování</div></div>
-      <div class="tile"><div class="k">Nové objednávky</div><div class="v num" id="tExtraOrders">–</div><div class="s" id="tExtraOrdersSub">měsíčně díky rychlému doručení</div></div>
-      <div class="tile"><div class="k">Návratnost zapojení</div><div class="v num" id="tPayback">–</div><div class="s" id="tPaybackSub">jednorázových nákladů</div></div>
-    </div>
-
-    <div class="charts">
-      <div class="card">
-        <div class="card-h">
-          <h3>Náklady na jednu zásilku</h3>
-          <p class="sub">Doprava a čas balení dnes vs. s AlzaBoxem</p>
-        </div>
-        <div class="card-b">
-          <div id="chartCost" role="img" aria-label="Sloupcový graf srovnání nákladů na zásilku"></div>
-          <div class="legend">
-            <span><i style="background:var(--c-blue)"></i>Doprava</span>
-            <span><i style="background:var(--c-amber)"></i>Zpracování zásilky</span>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-h">
-          <h3>Kumulativní přínos v prvním roce</h3>
-          <p class="sub" id="cumSub">Po odečtení jednorázových nákladů na zapojení</p>
-        </div>
-        <div class="card-b">
-          <div id="chartCum" role="img" aria-label="Graf kumulativního přínosu po měsících"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-h">
-        <h3>Z čeho se roční přínos skládá</h3>
-        <p class="sub">Tři nezávislé zdroje hodnoty – každý si můžete obhájit zvlášť</p>
-      </div>
-      <div class="card-b" id="breakdown"></div>
-    </div>
-
-    <div class="card no-print">
-      <div class="card-h">
-        <h3>Srovnání modelových scénářů</h3>
-        <p class="sub">Výchozí čísla deseti typových e-shopů s přiznaným zdůvodněním – jednání nezačíná od prázdných kolonek</p>
-      </div>
-      <div class="card-b">
-        <div style="overflow-x:auto">
-          <table class="sens scomp" id="scompTable"></table>
-        </div>
-        <p class="sens-note">Přínos v 1. roce po odečtení jednorázových nákladů na zapojení. Kliknutím na <em>Použít</em> scénář načtete a v jednání doladíte podle skutečnosti partnera.</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-h">
-        <h3>Citlivostní analýza ročního přínosu</h3>
-        <p class="sub">Co když bude adopce nebo růst objednávek jiný, než čekáme?</p>
-      </div>
-      <div class="card-b">
-        <div style="overflow-x:auto">
-          <table class="sens" id="sensTable"></table>
-        </div>
-        <p class="sens-note" id="sensNote"></p>
-      </div>
-    </div>
-  </section>
-</main>
-
-<div class="wrap sect" id="argsSect">
-  <div class="sh">
-    <h2>Argumenty pro jednání</h2>
-    <button class="btn no-print" id="copySummaryBtn">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Zkopírovat shrnutí pro e-mail
-    </button>
-  </div>
-  <div class="args" id="args"></div>
-</div>
-
-<div class="wrap sect no-print">
-  <div class="sh">
-    <h2>Na co se partner zeptá – a jak s tím pracovat</h2>
-    <p>Rozhodnutí e-shopu nestojí jen na kalkulačce. Tohle jsou nejčastější námitky a faktory mimo čísla.</p>
-  </div>
-  <div class="args">
-    <div class="arg"><h4>„Naši zákazníci jsou zvyklí na jiná výdejní místa.“</h4>
-      <p>AlzaBox je další volba v checkoutu, ne náhrada. Adopci řídí e-shop viditelností a cenou volby – do kalkulačky zadejte jen realistický podíl a sledujte ho po spuštění.</p></div>
-    <div class="arg"><h4>„Opravdu ušetříme na dopravě?“</h4>
-      <p>Záleží, který kanál AlzaBox nahradí a kolik dopravného nese zákazník. Proto kalkulačka pracuje s vašimi skutečnými náklady nahrazovaného kanálu – a citlivostní tabulka ukazuje i opatrné scénáře.</p></div>
-    <div class="arg"><h4>„Vejdou se naše produkty do schránky?“</h4>
-      <p>Rozměrové a hmotnostní limity projdeme na vzorku sortimentu. Do podílu AlzaBoxů počítejte jen zásilky, které se do schránky reálně vejdou.</p></div>
-    <div class="arg"><h4>„Jak náročné je zapojení?“</h4>
-      <p>Jednorázové náklady zadejte přímo do kalkulačky – návratnost se přepočítá okamžitě. Technické detaily (napojení, štítky, svozy) patří do onboardingu, ne na první schůzku.</p></div>
-    <div class="arg"><h4>„Co dobírka, vratky a reklamace?“</h4>
-      <p>Procesní otázky k vyjasnění v onboardingu; model je záměrně nezapočítává. Výdejní schránka navíc obvykle snižuje počet nedoručených zásilek.</p></div>
-    <div class="arg"><h4>„Proč to řešit právě teď?“</h4>
-      <p>Ranní a víkendové doručení je viditelná výhoda v checkoutu. Kdo ji nabídne dřív, získá zákazníky, u kterých rozhoduje rychlost – a náskok se dohání těžko.</p></div>
-  </div>
-</div>
-
-<div class="wrap sect no-print">
-  <details class="method">
-    <summary>
-      Jak kalkulačka počítá a s čím (ne)počítá
-      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-    </summary>
-    <div class="method-b">
-      <h4>Model přínosu</h4>
-      <p>Přínos služby skládáme ze tří nezávislých částí, které lze v jednání obhájit každou zvlášť:</p>
-      <div class="formulas">
-        <code>zásilky přes AlzaBox = objednávky × podíl zákazníků, kteří zvolí AlzaBox</code>
-        <code>úspora na dopravě = zásilky přes AlzaBox × (vaše současné náklady − cena AlzaBox)</code>
-        <code>úspora na zpracování = zásilky přes AlzaBox × ušetřené minuty ÷ 60 × hodinová sazba skladu</code>
-        <code>marže z nových objednávek = zásilky přes AlzaBox × růst × hodnota objednávky × marže</code>
-      </div>
-      <h4>Proč je odhad konzervativní</h4>
-      <ul>
-        <li>Přínos z nových objednávek počítáme jen z hrubé marže, ne z celé tržby – a růst aplikujeme pouze na zásilky doručované AlzaBoxem, ne na celý obrat. Při nulové adopci je tedy nulový.</li>
-        <li>Nezapočítáváme sekundární efekty: vyšší retenci spokojených zákazníků, méně nedoručených a vrácených zásilek z výdejního místa ani úsporu za obalový materiál.</li>
-      </ul>
-      <h4>S čím model nepočítá – ověřte v jednání</h4>
-      <ul>
-        <li><strong>Struktura dopravních kanálů:</strong> zadávejte náklady kanálu, který AlzaBox skutečně nahradí. Pokud dnes většina zákazníků volí levnější výdejní místa, bude úspora na dopravě menší, než ukazuje průměr.</li>
-        <li><strong>Dopravné účtované zákazníkovi:</strong> pokud nižší cenu promítnete do dopravného v checkoutu, část úspory předáte zákazníkovi – získáte za ni ale konkurenceschopnější checkout a vyšší adopci.</li>
-        <li><strong>DPH:</strong> všechny ceny zadávejte konzistentně bez DPH.</li>
-        <li><strong>Úspora času skladu je kapacitní:</strong> v hotovost se promění při růstu objemů nebo přesunem kapacity, u malých objemů jde o uvolněné ruce.</li>
-        <li><strong>Náklady na vyřízení nových objednávek:</strong> jejich dopravu typicky pokryje dopravné od zákazníka; balicí čas model nezapočítává.</li>
-        <li>Konkrétní smluvní ceny – výchozí hodnoty jsou orientační a upravují se přímo v jednání.</li>
-        <li>Rozdíly v rozměrech a hmotnosti zásilek (pracujeme s průměrnou zásilkou); sezónnost – vstupy zadávejte za průměrný měsíc.</li>
-      </ul>
-      <h4>Jak s nástrojem pracovat v jednání</h4>
-      <ul>
-        <li>Nezačínejte od nuly – vyberte modelový scénář nejbližší segmentu partnera. Výchozí čísla jsou modelová a jejich logika je u scénáře přiznaná; v jednání je jen dolaďujete.</li>
-        <li>Nechte partnera opravit, co je jinak – kalkulačka čísla přepočítá okamžitě, takže výsledek je „jeho“, ne váš.</li>
-        <li>Citlivostní tabulka odpovídá na námitku „a co když to bude méně?“ ještě dřív, než zazní.</li>
-        <li>Tlačítkem <em>Zkopírovat odkaz</em> pošlete partnerovi kalkulačku předvyplněnou jeho čísly, <em>Vytisknout shrnutí</em> vygeneruje jednostránkový podklad z jednání.</li>
-      </ul>
-    </div>
-  </details>
-</div>
-
-<div class="wrap sect">
-  <h2>O tomto nástroji</h2>
-  <p class="about">
-    Prototyp vznikl jako řešení case study pro roli Key Account Managera služby Pošli to AlzaBoxem.
-    Navržen a naprogramován byl ve spolupráci s AI (Claude): AI pomohla s návrhem obchodního modelu,
-    strukturou argumentace, výpočty i samotným kódem aplikace. Nejde o oficiální nástroj ani ceník Alza.cz –
-    všechny hodnoty jsou modelové a slouží jako podpora obchodního rozhovoru.
-  </p>
-</div>
-
-<footer class="foot">
-  <div class="wrap">
-    <span>Prototyp – case study · Pošli to AlzaBoxem · vytvořeno s pomocí AI</span>
-    <span class="links">Data zůstávají ve vašem prohlížeči – nic se nikam neodesílá.</span>
-  </div>
-</footer>
-
-<button id="mobileKpi" class="no-print" title="Přejít na výsledek">1. rok: <b id="mobileKpiVal">–</b></button>
-<div id="tip" role="presentation"></div>
-<div id="toast" role="status" aria-live="polite"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 'use strict';
+/* =====================================================================
+   Game Week — a vacation board-game scoreboard.
+   All data lives in localStorage on this device. Points are derived
+   from stored placements, so the scoring scheme can change at any time.
+===================================================================== */
 
-/* ================= definitions ================= */
-const FIELDS = {
-  orders:      {label:'Objednávky měsíčně',        unit:'ks',    min:100,  max:50000,  step:100,  dec:0},
-  aov:         {label:'Průměrná hodnota objednávky',unit:'Kč',   min:200,  max:5000,   step:50,   dec:0},
-  margin:      {label:'Hrubá marže',               unit:'%',     min:5,    max:70,     step:1,    dec:0},
-  curShip:     {label:'Vaše náklady na dopravu zásilky', unit:'Kč', min:40, max:160,   step:1,    dec:0},
-  curMin:      {label:'Příprava jedné zásilky',    unit:'min',   min:1,    max:15,     step:0.5,  dec:1},
-  hourly:      {label:'Náklady na skladníka',      unit:'Kč/h',  min:150,  max:600,    step:10,   dec:0},
-  boxShip:     {label:'Cena za zásilku AlzaBoxem', unit:'Kč',    min:40,   max:160,    step:1,    dec:0},
-  boxMin:      {label:'Příprava s AlzaBoxem',      unit:'min',   min:0.5,  max:15,     step:0.5,  dec:1},
-  adoption:    {label:'Podíl zásilek přes AlzaBox',unit:'%',     min:0,    max:100,    step:1,    dec:0},
-  uplift:      {label:'Růst objednávek díky rychlosti', unit:'%',min:0,    max:15,     step:0.5,  dec:1},
-  integration: {label:'Jednorázové náklady na zapojení', unit:'Kč', min:0, max:200000, step:5000, dec:0},
-};
+const STORAGE_KEY = 'gameweek-v1';
+const MAX_PLAYERS = 8;
+const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'];
 
-const SCENARIOS = {
-  maly: {label:'Malý e-shop', group:'Podle velikosti',
-    note:'Začínající či menší e-shop. Nižší adopce – zákazníky do boxů teprve navyknete; přínos táhne hlavně úspora na dopravě.',
-    v:{orders:800, aov:900, margin:30, curShip:95, curMin:6, hourly:320, boxShip:69, boxMin:3, adoption:30, uplift:4, integration:10000}},
-  stredni: {label:'Střední e-shop', group:'Podle velikosti',
-    note:'Výchozí modelový scénář. Vyvážený mix úspor a růstu; konzervativní adopce podle běžného podílu boxových doprav v checkoutu.',
-    v:{orders:5000, aov:1200, margin:25, curShip:89, curMin:5, hourly:350, boxShip:65, boxMin:3, adoption:35, uplift:5, integration:25000}},
-  velky: {label:'Velký e-shop', group:'Podle velikosti',
-    note:'Zavedený hráč s velkými objemy. I malá úspora na zásilce dělá miliony ročně; vyjednaná cena dopravy už bývá nízká.',
-    v:{orders:30000, aov:1500, margin:22, curShip:79, curMin:4, hourly:380, boxShip:59, boxMin:2.5, adoption:40, uplift:6, integration:60000}},
-  moda: {label:'Móda a obuv', group:'Podle segmentu',
-    note:'Vyšší hrubá marže a publikum zvyklé na výdejní boxy → vyšší adopce i citlivost na rychlost dodání. Vratky model nezapočítává.',
-    v:{orders:6000, aov:1400, margin:48, curShip:85, curMin:5, hourly:350, boxShip:65, boxMin:3, adoption:45, uplift:6, integration:30000}},
-  elektro: {label:'Elektro a příslušenství', group:'Podle segmentu',
-    note:'Nižší procentní marže → přínos táhnou úspory. Velké spotřebiče do boxu nepatří – adopci počítejte jen z drobné elektroniky a příslušenství.',
-    v:{orders:4000, aov:2600, margin:14, curShip:95, curMin:6, hourly:380, boxShip:69, boxMin:3.5, adoption:30, uplift:4, integration:40000}},
-  kosmetika: {label:'Kosmetika a drogerie', group:'Podle segmentu',
-    note:'Malé a lehké zásilky ideální do schránky. Časté opakované nákupy – rychlé doručení zvyšuje frekvenci objednávek.',
-    v:{orders:3500, aov:750, margin:38, curShip:79, curMin:4, hourly:330, boxShip:59, boxMin:2, adoption:45, uplift:7, integration:20000}},
-  knihy: {label:'Knihy a média', group:'Podle segmentu',
-    note:'Rozměrově ideální sortiment a nízká hodnota košíku – o konverzi rozhoduje cena dopravy, kterou box snižuje.',
-    v:{orders:2500, aov:500, margin:30, curShip:75, curMin:3.5, hourly:320, boxShip:55, boxMin:2, adoption:50, uplift:5, integration:15000}},
-  sport: {label:'Sport a outdoor', group:'Podle segmentu',
-    note:'Smíšené rozměry zásilek. Adopci nastavte podle podílu sortimentu, který se do schránky reálně vejde.',
-    v:{orders:3000, aov:1900, margin:32, curShip:89, curMin:5.5, hourly:360, boxShip:69, boxMin:3, adoption:35, uplift:5, integration:30000}},
-  deti: {label:'Dětské zboží a hračky', group:'Podle segmentu',
-    note:'Rodiče nakupují večer a vyzvedávají cestou – boxům to vyhovuje; střední adopce kvůli objemnějším položkám (kočárky apod.).',
-    v:{orders:2800, aov:1100, margin:32, curShip:89, curMin:5, hourly:340, boxShip:65, boxMin:3, adoption:40, uplift:5, integration:20000}},
-  chovatel: {label:'Chovatelské potřeby', group:'Podle segmentu',
-    note:'Těžké pytle krmiva do boxu nepatří – nízká adopce jen na doplňky. Scénář férově ukazuje segment, kde je přínos služby omezený.',
-    v:{orders:5000, aov:900, margin:24, curShip:99, curMin:6, hourly:350, boxShip:75, boxMin:4, adoption:15, uplift:3, integration:25000}},
-};
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now());
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 
-const URL_KEYS = {orders:'o', aov:'aov', margin:'m', curShip:'cs', curMin:'cm', hourly:'h', boxShip:'bs', boxMin:'bm', adoption:'ad', uplift:'up', integration:'in'};
+/* ---------- state ---------- */
+let state = null;
+let storageOk = true;
+let seqCounter = 0;
 
-let S = {...SCENARIOS.stredni.v};
-
-/* ================= formatting ================= */
-const nf0 = new Intl.NumberFormat('cs-CZ', {maximumFractionDigits:0});
-const nf1 = new Intl.NumberFormat('cs-CZ', {minimumFractionDigits:0, maximumFractionDigits:1});
-const money  = v => nf0.format(Math.round(v)) + ' Kč';
-const moneyS = v => (v >= 0 ? '+' : '−') + nf0.format(Math.round(Math.abs(v))) + ' Kč';
-function moneyShort(v){
-  const a = Math.abs(v);
-  if (a >= 1e6) return nf1.format(v/1e6) + ' mil. Kč';
-  if (a >= 1e4) return nf0.format(Math.round(v/1e3)) + ' tis. Kč';
-  return money(v);
-}
-function czMes(n){
-  if (!Number.isInteger(n)) return 'měsíce';
-  if (n === 1) return 'měsíc';
-  if (n >= 2 && n <= 4) return 'měsíce';
-  return 'měsíců';
-}
-function czPl(n, one, few, many){
-  const a = Math.abs(Math.round(n));
-  if (a === 1) return one;
-  if (a >= 2 && a <= 4) return few;
-  return many;
+function freshState(){
+  return {
+    version: 1,
+    trip: { name: 'Game Week', start: todayStr() },
+    settings: { scheme: 'podium' },
+    players: [],           // {id, name, slot}
+    matches: [],           // {id, seq, game, date, mode, lowWins, results:[{playerId, score|null, rank|null}]}
+    gamePrefs: {}          // { lowercased game name: {lowWins} }
+  };
 }
 
-/* ================= model ================= */
-function compute(s){
-  const boxParcels     = s.orders * s.adoption / 100;
-  const shipSaveUnit   = s.curShip - s.boxShip;
-  const handleSaveUnit = (s.curMin - s.boxMin) / 60 * s.hourly;
-  const shipSave   = boxParcels * shipSaveUnit;
-  const handleSave = boxParcels * handleSaveUnit;
-  const extraOrders = boxParcels * s.uplift / 100;
-  const extraMargin = extraOrders * s.aov * s.margin / 100;
-  const monthly = shipSave + handleSave + extraMargin;
-  const annual  = monthly * 12;
-  const annualNet = annual - s.integration;
-  const perParcel = shipSaveUnit + handleSaveUnit;
-  const payback = (s.integration > 0 && monthly > 0) ? s.integration / monthly : null;
-  const pctRevenue = s.orders * s.aov > 0 ? monthly / (s.orders * s.aov) * 100 : 0;
-  return {boxParcels, shipSaveUnit, handleSaveUnit, shipSave, handleSave, extraOrders, extraMargin, monthly, annual, annualNet, perParcel, payback, pctRevenue};
-}
-
-/* ================= inputs ================= */
-function buildFields(){
-  document.querySelectorAll('.field[data-k]').forEach(el => {
-    const k = el.dataset.k, f = FIELDS[k];
-    el.innerHTML = `
-      <div class="field-l">
-        <label for="n_${k}">${f.label}</label>
-        <span class="val">
-          <input type="text" class="numin" id="n_${k}" inputmode="decimal" autocomplete="off" aria-label="${f.label}">
-          <span class="unit">${f.unit}</span>
-        </span>
-      </div>
-      <input type="range" id="r_${k}" min="${f.min}" max="${f.max}" step="${f.step}" aria-label="${f.label} – posuvník">`;
-    const num = el.querySelector('input.numin');
-    const rng = el.querySelector('input[type=range]');
-    rng.addEventListener('input', () => { setVal(k, parseFloat(rng.value)); });
-    num.addEventListener('input', () => {
-      const v = parseFloat(num.value.replace(/[\s ]/g, '').replace(',', '.'));
-      if (!isNaN(v)) setVal(k, v, {skipNum:true});
-    });
-    num.addEventListener('blur', () => syncField(k));
-  });
-}
-
-function clamp(k, v){
-  const f = FIELDS[k];
-  if (isNaN(v)) return f.min;
-  const p = 10 ** f.dec;
-  return Math.round(Math.min(f.max, Math.max(f.min, v)) * p) / p;
-}
-
-function setVal(k, v, opt = {}){
-  S[k] = clamp(k, v);
-  syncField(k, opt);
-  update();
-}
-
-function syncField(k, opt = {}){
-  const f = FIELDS[k];
-  const num = document.getElementById('n_' + k);
-  const rng = document.getElementById('r_' + k);
-  if (!num || !rng) return;
-  if (!opt.skipNum) num.value = f.dec ? nf1.format(S[k]) : nf0.format(S[k]).replace(/ /g, ' ');
-  rng.value = S[k];
-  const pct = (S[k] - f.min) / (f.max - f.min) * 100;
-  rng.style.setProperty('--fill', pct + '%');
-}
-
-function syncAllFields(){ Object.keys(FIELDS).forEach(k => syncField(k)); }
-
-function buildScenarioSelect(){
-  const sel = document.getElementById('scenarioSel');
-  const groups = {};
-  for (const [key, sc] of Object.entries(SCENARIOS)){
-    (groups[sc.group] = groups[sc.group] || []).push([key, sc]);
-  }
-  sel.innerHTML = '<option value="custom" hidden>— vlastní nastavení —</option>' +
-    Object.entries(groups).map(([g, items]) =>
-      `<optgroup label="${g}">` +
-      items.map(([key, sc]) => `<option value="${key}">${sc.label}</option>`).join('') +
-      '</optgroup>').join('');
-  sel.addEventListener('change', () => { if (sel.value !== 'custom') applyScenario(sel.value); });
-}
-
-function matchedScenario(){
-  for (const [key, sc] of Object.entries(SCENARIOS)){
-    if (Object.keys(FIELDS).every(k => S[k] === sc.v[k])) return key;
-  }
-  return null;
-}
-
-function syncScenarioSelect(){
-  const mkey = matchedScenario();
-  document.getElementById('scenarioSel').value = mkey || 'custom';
-  document.getElementById('scenarioNote').textContent = mkey
-    ? SCENARIOS[mkey].note
-    : 'Vlastní čísla – ručně upravená nebo načtená z odkazu. Výběrem scénáře začnete od modelových hodnot.';
-  return mkey;
-}
-
-function applyScenario(key){
-  if (!SCENARIOS[key]) return;
-  S = {...SCENARIOS[key].v};
-  syncAllFields();
-  update();
-}
-
-function renderScenarioTable(currentKey){
-  let html = `<thead><tr><th scope="col">Scénář</th><th scope="col">Obj./měs.</th><th scope="col">Adopce</th><th scope="col">Přínos v 1. roce</th><th scope="col"><span class="sr-only">Akce</span></th></tr></thead><tbody>`;
-  for (const [key, sc] of Object.entries(SCENARIOS)){
-    const r = compute(sc.v);
-    const net = r.annual - sc.v.integration;
-    html += `<tr${key === currentKey ? ' class="cur"' : ''}>
-      <th scope="row">${sc.label}<small>${sc.group === 'Podle velikosti' ? 'obecný' : 'segment'}</small></th>
-      <td class="num">${nf0.format(sc.v.orders)}</td>
-      <td class="num">${nf0.format(sc.v.adoption)} %</td>
-      <td class="num" style="font-weight:700">${moneyShort(net)}</td>
-      <td><button type="button" class="userow" data-scenario="${key}">${key === currentKey ? 'aktivní' : 'Použít'}</button></td>
-    </tr>`;
-  }
-  document.getElementById('scompTable').innerHTML = html + '</tbody>';
-}
-
-/* ================= charts ================= */
-const svgEl = h => { const d = document.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
-
-function chartCost(r){
-  const W = 460, H = 240, padB = 30, padT = 54;
-  const cur = {ship: S.curShip, hand: S.curMin / 60 * S.hourly};
-  const box = {ship: S.boxShip, hand: S.boxMin / 60 * S.hourly};
-  const totals = [cur.ship + cur.hand, box.ship + box.hand];
-  const maxV = Math.max(...totals, 1);
-  const scale = v => v / maxV * (H - padB - padT);
-  const bw = 96, cx = [W * 0.31, W * 0.69];
-  const cats = [
-    {label:'Dnes', segs:[{v:cur.ship, c:'var(--c-blue)', n:'Doprava'}, {v:cur.hand, c:'var(--c-amber)', n:'Zpracování zásilky'}], total:totals[0]},
-    {label:'S AlzaBoxem', segs:[{v:box.ship, c:'var(--c-blue)', n:'Doprava'}, {v:box.hand, c:'var(--c-amber)', n:'Zpracování zásilky'}], total:totals[1]},
-  ];
-  let bars = '';
-  cats.forEach((cat, i) => {
-    let y = H - padB;
-    cat.segs.forEach((sg, j) => {
-      const h = Math.max(scale(sg.v) - (j > 0 ? 2 : 0), 0);
-      y -= scale(sg.v);
-      const yy = y + (j > 0 ? 0 : 0);
-      const isTop = j === cat.segs.length - 1;
-      bars += `<rect class="seg" data-tip="<b>${cat.label} – ${sg.n}</b><br>${money(sg.v)} na zásilku"
-        x="${cx[i] - bw/2}" y="${yy + (j>0?2:0)}" width="${bw}" height="${Math.max(h,0)}"
-        fill="${sg.c}" rx="${isTop ? 4 : 0}" ry="${isTop ? 4 : 0}"></rect>`;
-    });
-    bars += `<text x="${cx[i]}" y="${H - padB + 19}" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink-2)">${cat.label}</text>`;
-    bars += `<text class="num" x="${cx[i]}" y="${H - padB - scale(cat.total) - 9}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${money(cat.total)}</text>`;
-  });
-  const diff = totals[0] - totals[1];
-  const diffTxt = diff >= 0
-    ? `<text x="${W/2}" y="16" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--c-green)">úspora ${money(diff)} na zásilce přes AlzaBox</text>`
-    : `<text x="${W/2}" y="16" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--c-neg)">o ${money(-diff)} dráž na zásilce</text>`;
-  const el = document.getElementById('chartCost');
-  el.innerHTML =
-    `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
-      <line x1="0" y1="${H - padB}" x2="${W}" y2="${H - padB}" stroke="var(--line-2)"/>
-      ${bars}${diffTxt}
-    </svg>`;
-  el.setAttribute('aria-label',
-    `Náklady na jednu zásilku: dnes ${money(totals[0])} (doprava ${money(cur.ship)}, zpracování ${money(cur.hand)}); ` +
-    `s AlzaBoxem ${money(totals[1])} (doprava ${money(box.ship)}, zpracování ${money(box.hand)}); rozdíl ${moneyS(diff)} na zásilku.`);
-}
-
-function chartCum(r){
-  const W = 460, H = 240, padL = 12, padR = 16, padT = 18, padB = 26;
-  const pts = [];
-  for (let m = 0; m <= 12; m++) pts.push({m, v: r.monthly * m - S.integration});
-  const vMin = Math.min(0, ...pts.map(p => p.v));
-  const vMax = Math.max(1, ...pts.map(p => p.v));
-  const x = m => padL + m / 12 * (W - padL - padR);
-  const y = v => padT + (vMax - v) / (vMax - vMin || 1) * (H - padT - padB);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.m).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
-  const area = `${line}L${x(12).toFixed(1)},${y(Math.min(0, vMin)).toFixed(1)}L${x(0).toFixed(1)},${y(Math.min(0, vMin)).toFixed(1)}Z`;
-  const zeroY = y(0);
-  let be = '';
-  if (S.integration > 0 && r.monthly > 0){
-    const bm = S.integration / r.monthly;
-    if (bm <= 12){
-      const bmR = Math.round(bm * 10) / 10;
-      be = `<line x1="${x(bm)}" y1="${padT}" x2="${x(bm)}" y2="${H - padB}" stroke="var(--muted)" stroke-dasharray="4 4"/>
-            <text x="${Math.min(x(bm) + 6, W - 130)}" y="${padT + 12}" font-size="11.5" font-weight="600" fill="var(--muted)">návratnost za ${nf1.format(bmR)} ${czMes(bmR)}</text>`;
-    }
-  }
-  const end = pts[12];
-  const months = [0, 3, 6, 9, 12];
-  const axis = months.map(m =>
-    `<text x="${x(m)}" y="${H - 8}" text-anchor="${m === 0 ? 'start' : m === 12 ? 'end' : 'middle'}" font-size="11.5" fill="var(--muted)">${m === 0 ? 'start' : m + '. měsíc'}</text>`).join('');
-  const tone = r.monthly >= 0 ? 'var(--c-green)' : 'var(--c-neg)';
-  const hover = `<rect id="cumHover" x="${padL}" y="0" width="${W - padL - padR}" height="${H}" fill="transparent"></rect>
-    <g id="cumCross" style="display:none">
-      <line id="cumCrossL" x1="0" y1="${padT}" x2="0" y2="${H - padB}" stroke="var(--line-2)"/>
-      <circle id="cumCrossC" r="4.5" fill="${tone}" stroke="var(--surface)" stroke-width="2"/>
-    </g>`;
-  document.getElementById('chartCum').innerHTML =
-    `<svg id="cumSvg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
-      <line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="var(--line-2)"/>
-      <path d="${area}" fill="${tone}" opacity="0.13"/>
-      <path d="${line}" fill="none" stroke="${tone}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-      ${be}
-      <circle cx="${x(12)}" cy="${y(end.v)}" r="4.5" fill="${tone}" stroke="var(--surface)" stroke-width="2"/>
-      <text class="num" x="${W - padR}" y="${Math.max(y(end.v) - 10, 12)}" text-anchor="end" font-size="13" font-weight="700" fill="${tone}">${moneyS(end.v)}</text>
-      ${axis}${hover}
-    </svg>`;
-  const wrap = document.getElementById('chartCum');
-  wrap.setAttribute('aria-label',
-    `Kumulativní přínos v prvním roce: po 12 měsících ${moneyS(end.v)}` +
-    (S.integration > 0 && r.monthly > 0 && S.integration / r.monthly <= 12
-      ? `, návratnost jednorázových nákladů přibližně za ${nf1.format(Math.round(S.integration / r.monthly * 10) / 10)} ${czMes(Math.round(S.integration / r.monthly * 10) / 10)}.` : '.'));
-  const svg = document.getElementById('cumSvg');
-  const hoverRect = document.getElementById('cumHover');
-  const cross = document.getElementById('cumCross');
-  const crossL = document.getElementById('cumCrossL');
-  const crossC = document.getElementById('cumCrossC');
-  function onMove(ev){
-    const rect = svg.getBoundingClientRect();
-    const relX = (ev.clientX - rect.left) / rect.width * W;
-    const m = Math.round(Math.min(12, Math.max(0, (relX - padL) / (W - padL - padR) * 12)));
-    const p = pts[m];
-    cross.style.display = '';
-    crossL.setAttribute('x1', x(m)); crossL.setAttribute('x2', x(m));
-    crossC.setAttribute('cx', x(m)); crossC.setAttribute('cy', y(p.v));
-    showTip(ev, `<b>${m === 0 ? 'Start' : m + '. měsíc'}</b><br>kumulativně ${moneyS(p.v)}`);
-  }
-  hoverRect.addEventListener('mousemove', onMove);
-  hoverRect.addEventListener('mouseleave', () => { cross.style.display = 'none'; hideTip(); });
-}
-
-function renderBreakdown(r){
-  const rows = [
-    {n:'Úspora na dopravě', d:`${nf0.format(Math.round(r.boxParcels))} ${czPl(r.boxParcels, 'zásilka', 'zásilky', 'zásilek')}/měs. × ${moneyS(r.shipSaveUnit)} × 12`, v:r.shipSave * 12},
-    {n:'Úspora na zpracování', d:`úspora ${nf1.format(S.curMin - S.boxMin)} min na zásilku`, v:r.handleSave * 12},
-    {n:'Marže z nových objednávek', d:`+${nf0.format(Math.round(r.extraOrders))} ${czPl(r.extraOrders, 'objednávka', 'objednávky', 'objednávek')}/měs. × 12`, v:r.extraMargin * 12},
-  ];
-  const maxV = Math.max(...rows.map(x => Math.abs(x.v)), 1);
-  document.getElementById('breakdown').innerHTML = rows.map(x => `
-    <div class="brow">
-      <div class="bl">${x.n}<small>${x.d}</small></div>
-      <div class="bar"><i class="${x.v < 0 ? 'neg' : ''}" style="width:${Math.abs(x.v) / maxV * 100}%"></i></div>
-      <div class="bval num ${x.v < 0 ? 'neg' : ''}">${moneyS(x.v)}<small style="display:block;font-weight:400;color:var(--muted)">ročně</small></div>
-    </div>`).join('');
-}
-
-function renderSensitivity(){
-  const ads = [20, 35, 50], ups = [1, 3, 5];
-  const vals = ads.map(ad => ups.map(up => compute({...S, adoption:ad, uplift:up}).annual));
-  const flat = vals.flat();
-  const lo = Math.min(...flat), hi = Math.max(...flat);
-  const nearestAd = ads.reduce((a, b) => Math.abs(b - S.adoption) < Math.abs(a - S.adoption) ? b : a);
-  const nearestUp = ups.reduce((a, b) => Math.abs(b - S.uplift) < Math.abs(a - S.uplift) ? b : a);
-  let html = `<thead><tr><th scope="col">Roční přínos</th>${ups.map(u => `<th scope="col">růst +${nf1.format(u)} %</th>`).join('')}</tr></thead><tbody>`;
-  ads.forEach((ad, i) => {
-    html += `<tr><th scope="row">adopce ${ad} %</th>`;
-    ups.forEach((up, j) => {
-      const v = vals[i][j];
-      const t = hi === lo ? 0.5 : (v - lo) / (hi - lo);
-      const alpha = 6 + t * 22;
-      const hot = ad === nearestAd && up === nearestUp;
-      html += `<td class="num${hot ? ' hot' : ''}" style="background:color-mix(in srgb, var(--c-green) ${alpha.toFixed(0)}%, transparent)">${moneyShort(v)}</td>`;
-    });
-    html += '</tr>';
-  });
-  html += '</tbody>';
-  document.getElementById('sensTable').innerHTML = html;
-  document.getElementById('sensNote').textContent =
-    `Hodnoty jsou před odečtením jednorázových nákladů na zapojení. Zvýrazněná buňka je nejblíž vašemu aktuálnímu nastavení (adopce ${nf0.format(S.adoption)} %, růst +${nf1.format(S.uplift)} %). ` +
-    (vals[0][0] >= 0
-      ? `I v nejopatrnějším scénáři vlevo nahoře zůstává přínos ${moneyShort(vals[0][0])} ročně.`
-      : `V nejopatrnějším scénáři vlevo nahoře vychází výsledek záporně – upravte vstupy podle reálné nabídky.`);
-}
-
-/* ================= arguments ================= */
-function renderArgs(r){
-  const items = [];
-  const logistics = (r.shipSave + r.handleSave) * 12;
-  items.push({
-    h:'Nižší náklady na logistiku',
-    p:`Při ${nf0.format(S.adoption)}% podílu AlzaBoxů ušetříte <strong${logistics < 0 ? ' class="neg"' : ''}>${moneyS(logistics)} ročně</strong> na dopravě a zpracování – ${moneyS(r.perParcel)} na každé zásilce odeslané přes AlzaBox.`
-  });
-  items.push({
-    h:'Doručení druhý den ráno – i o víkendu',
-    p:`Objednávka večer, vyzvednutí druhý den brzy ráno, v sobotu i v neděli. Už nárůst objednávek o <strong>+${nf1.format(S.uplift)} %</strong> na zásilkách přes AlzaBox znamená <strong>${moneyS(r.extraMargin * 12)} ročně</strong> na marži navíc.`
-  });
-  items.push({
-    h:'Zákaznická zkušenost bez čekání doma',
-    p:`Zákazník si zásilku vyzvedne, kdy se mu to hodí. Méně nedoručených zásilek, méně dotazů „kde je můj balík“ a lepší recenze – to model ani nezapočítává, jde o bonus navrch.`
-  });
-  if (r.payback && r.payback <= 24){
-    items.push({
-      h:'Rychlá návratnost zapojení',
-      p:`Jednorázové náklady ${money(S.integration)} se vrátí ${r.payback < 1 ? 'za <strong>necelý měsíc</strong>' : `přibližně za <strong>${nf1.format(r.payback)} ${czMes(Math.round(r.payback * 10) / 10)}</strong>`}. Od té chvíle se přínos ${moneyShort(r.monthly)} měsíčně každý měsíc opakuje.`
-    });
-  } else if (r.monthly > 0){
-    items.push({
-      h:'Přínos vidíte černé na bílém',
-      p:`Model je záměrně konzervativní – počítá jen s maržemi, ne s tržbami, a sekundární efekty (retence, méně vratek) nechává stranou.`
-    });
+function load(){
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); }
+  catch(e){ storageOk = false; }
+  if(raw){
+    try {
+      const parsed = JSON.parse(raw);
+      state = sanitizeState(parsed) || freshState();
+    } catch(e){ state = freshState(); }
   } else {
-    items.push({
-      h:'Otevřenost místo přesvědčování',
-      p:`Kalkulačka nic nepřikrášluje – se zadanými vstupy přínos nevychází. Upravte ceny a podíl AlzaBoxů podle reálné nabídky, nebo se pobavme o tom, kde model neodpovídá vaší situaci.`
-    });
+    state = freshState();
   }
-  document.getElementById('args').innerHTML = items.map((x, i) => `
-    <div class="arg"><span class="n">${i + 1}</span><h4>${x.h}</h4><p>${x.p}</p></div>`).join('');
+  seqCounter = state.matches.reduce((m, x) => Math.max(m, x.seq || 0), 0);
 }
 
-/* ================= summary text (email) ================= */
-function summaryText(r){
-  const L = [];
-  L.push('Shrnutí: přínos služby Pošli to AlzaBoxem');
-  L.push('==========================================');
-  L.push(`Vstupy: ${nf0.format(S.orders)} objednávek/měs., hodnota objednávky ${money(S.aov)}, marže ${S.margin} %,`);
-  L.push(`doprava dnes ${money(S.curShip)} vs. AlzaBox ${money(S.boxShip)}, adopce ${S.adoption} %, růst +${nf1.format(S.uplift)} % na zásilkách přes AlzaBox.`);
-  L.push('');
-  L.push(`Celkový přínos v 1. roce: ${moneyS(r.annualNet)}${S.integration > 0 ? ' (po odečtení nákladů na zapojení ' + money(S.integration) + ')' : ''}`);
-  L.push(`— úspora na dopravě:        ${moneyS(r.shipSave * 12)} / rok`);
-  L.push(`— úspora na zpracování:     ${moneyS(r.handleSave * 12)} / rok`);
-  L.push(`— marže z nových objednávek: ${moneyS(r.extraMargin * 12)} / rok`);
-  if (r.payback) L.push(`Návratnost zapojení: ~${nf1.format(r.payback)} měs.`);
-  L.push('');
-  L.push(`Interaktivní kalkulačka s těmito čísly: ${shareUrl()}`);
-  return L.join('\n');
-}
-
-/* ================= URL state ================= */
-function shareUrl(){
-  const p = new URLSearchParams();
-  for (const [k, sk] of Object.entries(URL_KEYS)) p.set(sk, String(S[k]));
-  return location.origin + location.pathname + '?' + p.toString();
-}
-function readUrl(){
-  const q = new URLSearchParams(location.search);
-  for (const [k, sk] of Object.entries(URL_KEYS)){
-    if (q.has(sk)){
-      const v = parseFloat(String(q.get(sk)).replace(',', '.'));
-      if (!isNaN(v)) S[k] = clamp(k, v);
-    }
+function save(){
+  if(!storageOk) return;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){
+    storageOk = false;
+    toast('Couldn’t save on this device — export a backup from Settings.');
   }
 }
 
-/* State survives a refresh via localStorage; the address bar is never touched.
-   A prefilled link (query params) always wins over the stored state. */
-const STORE_KEY = 'alzabox-kalkulator-v1';
-let saveTimer;
-function saveStateNow(){
-  clearTimeout(saveTimer);
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(_){}
-}
-function saveState(){
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveStateNow, 350);
-}
-addEventListener('pagehide', saveStateNow);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveStateNow(); });
-function loadState(){
-  try{
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return;
-    const obj = JSON.parse(raw);
-    for (const k of Object.keys(FIELDS)){
-      const v = parseFloat(obj[k]);
-      if (!isNaN(v)) S[k] = clamp(k, v);
+/* Validate an unknown parsed object into app state; returns null if unusable. */
+function sanitizeState(o){
+  if(!o || typeof o !== 'object') return null;
+  const s = freshState();
+  if(o.trip && typeof o.trip === 'object'){
+    if(typeof o.trip.name === 'string' && o.trip.name.trim()) s.trip.name = o.trip.name.trim().slice(0,60);
+    if(typeof o.trip.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.trip.start)) s.trip.start = o.trip.start;
+  }
+  if(o.settings && ['winner','podium','linear'].includes(o.settings.scheme)) s.settings.scheme = o.settings.scheme;
+  const usedSlots = new Set();
+  if(Array.isArray(o.players)){
+    for(const p of o.players.slice(0, MAX_PLAYERS)){
+      if(!p || typeof p.name !== 'string' || !p.name.trim()) continue;
+      let slot = Number.isInteger(p.slot) && p.slot >= 0 && p.slot < MAX_PLAYERS && !usedSlots.has(p.slot) ? p.slot : null;
+      if(slot === null){ slot = 0; while(usedSlots.has(slot)) slot++; }
+      if(slot >= MAX_PLAYERS) continue;
+      usedSlots.add(slot);
+      s.players.push({ id: typeof p.id === 'string' && p.id ? p.id : uid(), name: p.name.trim().slice(0,40), slot });
     }
-  }catch(_){}
+  }
+  const ids = new Set(s.players.map(p => p.id));
+  if(Array.isArray(o.matches)){
+    for(const m of o.matches){
+      if(!m || typeof m !== 'object' || !Array.isArray(m.results)) continue;
+      const results = [];
+      for(const r of m.results){
+        if(!r || !ids.has(r.playerId)) continue;
+        if(results.some(x => x.playerId === r.playerId)) continue;
+        results.push({
+          playerId: r.playerId,
+          score: (typeof r.score === 'number' && isFinite(r.score)) ? r.score : null,
+          rank: (Number.isInteger(r.rank) && r.rank >= 1) ? r.rank : null
+        });
+      }
+      if(results.length < 1) continue;
+      s.matches.push({
+        id: typeof m.id === 'string' && m.id ? m.id : uid(),
+        seq: Number.isInteger(m.seq) ? m.seq : 0,
+        game: (typeof m.game === 'string' && m.game.trim()) ? m.game.trim().slice(0,60) : 'Game',
+        date: (typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) ? m.date : todayStr(),
+        mode: ['winner','ranking','scores'].includes(m.mode) ? m.mode : 'winner',
+        lowWins: !!m.lowWins,
+        results
+      });
+    }
+    // Rebuild seq for matches missing one, preserving array order.
+    let maxSeq = s.matches.reduce((a,m)=>Math.max(a,m.seq),0);
+    for(const m of s.matches){ if(!m.seq) m.seq = ++maxSeq; }
+  }
+  if(o.gamePrefs && typeof o.gamePrefs === 'object'){
+    for(const k of Object.keys(o.gamePrefs).slice(0,200)){
+      const v = o.gamePrefs[k];
+      if(v && typeof v === 'object') s.gamePrefs[String(k).slice(0,60)] = { lowWins: !!v.lowWins };
+    }
+  }
+  return s;
 }
 
-/* ================= tooltip & toast ================= */
-const tip = document.getElementById('tip');
-function showTip(ev, html){
-  tip.innerHTML = html;
-  tip.style.display = 'block';
-  const pad = 14;
-  let tx = ev.clientX + pad, ty = ev.clientY + pad;
-  const r = tip.getBoundingClientRect();
-  if (tx + r.width > innerWidth - 8) tx = ev.clientX - r.width - pad;
-  if (ty + r.height > innerHeight - 8) ty = ev.clientY - r.height - pad;
-  tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
-}
-function hideTip(){ tip.style.display = 'none'; }
-document.addEventListener('mousemove', ev => {
-  const t = ev.target.closest('[data-tip]');
-  if (t) showTip(ev, t.dataset.tip);
-  else if (!ev.target.closest('#cumHover')) hideTip();
-});
-document.addEventListener('touchstart', hideTip, {passive:true});
+/* ---------- scoring ---------- */
+const SCHEMES = {
+  winner: { label: 'Winner only',  sub: '1 point for winning a game. Simple win count.' },
+  podium: { label: 'Podium',       sub: '3 / 2 / 1 points for 1st / 2nd / 3rd place.' },
+  linear: { label: 'Field size',   sub: 'Win a 6-player game, get 6 points; last place gets 1. Bigger games count for more.' }
+};
 
-let toastTimer, toastClearTimer;
+function pointsFor(rank, participants, scheme){
+  scheme = scheme || state.settings.scheme;
+  if(rank == null) return 0;
+  if(scheme === 'winner') return rank === 1 ? 1 : 0;
+  if(scheme === 'podium') return rank === 1 ? 3 : rank === 2 ? 2 : rank === 3 ? 1 : 0;
+  return Math.max(participants - rank + 1, 0); // linear
+}
+
+/* Competition ranking (1,1,3) from scores. */
+function ranksFromScores(entries, lowWins){
+  const sorted = [...entries].sort((a,b) => lowWins ? a.score - b.score : b.score - a.score);
+  const out = new Map();
+  sorted.forEach((e,i) => {
+    if(i > 0 && sorted[i-1].score === e.score) out.set(e.playerId, out.get(sorted[i-1].playerId));
+    else out.set(e.playerId, i + 1);
+  });
+  return out;
+}
+
+function orderedMatches(){
+  return [...state.matches].sort((a,b) => a.date === b.date ? a.seq - b.seq : (a.date < b.date ? -1 : 1));
+}
+
+function standings(){
+  const rows = state.players.map(p => ({ p, pts: 0, wins: 0, played: 0 }));
+  const byId = new Map(rows.map(r => [r.p.id, r]));
+  for(const m of state.matches){
+    for(const r of m.results){
+      const row = byId.get(r.playerId);
+      if(!row) continue;
+      row.played++;
+      if(r.rank === 1) row.wins++;
+      row.pts += pointsFor(r.rank, m.results.length);
+    }
+  }
+  rows.sort((a,b) => b.pts - a.pts || b.wins - a.wins || a.played - b.played || a.p.name.localeCompare(b.p.name));
+  // competition rank by points
+  rows.forEach((r,i) => { r.rank = (i > 0 && rows[i-1].pts === r.pts) ? rows[i-1].rank : i + 1; });
+  return rows;
+}
+
+/* ---------- misc helpers ---------- */
+function playerById(id){ return state.players.find(p => p.id === id); }
+function slotVar(p){ return 'var(' + SLOT_VARS[p.slot] + ')'; }
+function fmtNum(n){ return (Math.round(n * 10) / 10).toLocaleString('en-US'); }
+function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20)%10]||s[v]||s[0]); }
+function fmtDate(iso, opts){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('en-US', opts || {weekday:'short', month:'short', day:'numeric'});
+}
+function tripDayOf(iso){
+  const ms = (new Date(iso + 'T12:00') - new Date(state.trip.start + 'T12:00'));
+  return Math.floor(ms / 86400000) + 1;
+}
+function meeple(p, opts){
+  opts = opts || {};
+  return '<span class="mavatar" style="--pc:' + slotVar(p) + '"' + (opts.small ? ' data-small' : '') + '>' +
+    '<svg class="meeple" role="img" aria-label="' + esc(p.name) + '"><use href="#i-meeple"/></svg>' +
+    (opts.crown ? '<svg class="crown" aria-label="Current leader"><use href="#i-crown"/></svg>' : '') +
+  '</span>';
+}
+
+let toastTimer = null;
 function toast(msg){
-  const el = document.getElementById('toast');
-  clearTimeout(toastTimer); clearTimeout(toastClearTimer);
-  el.textContent = '';
-  requestAnimationFrame(() => { el.textContent = msg; el.classList.add('show'); });
-  toastTimer = setTimeout(() => {
-    el.classList.remove('show');
-    toastClearTimer = setTimeout(() => { el.textContent = ''; }, 350);
-  }, 2400);
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
-async function copyText(text, okMsg){
-  try{
-    await navigator.clipboard.writeText(text);
-    toast(okMsg);
-  }catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    try{ toast(document.execCommand('copy') ? okMsg : 'Kopírování se nezdařilo'); }
-    catch(_){ toast('Kopírování se nezdařilo'); }
-    ta.remove();
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const host = document.createElement('div');
+  host.className = 'confetti';
+  const colors = state.players.length ? state.players.map(slotVar) : ['var(--s1)','var(--s2)','var(--s3)'];
+  for(let i = 0; i < 22; i++){
+    const el = document.createElement('i');
+    el.style.background = colors[i % colors.length];
+    el.style.left = (18 + Math.random() * 64) + '%';
+    el.style.top = '-16px';
+    el.style.setProperty('--dx', (Math.random() * 140 - 70) + 'px');
+    el.style.setProperty('--dy', (200 + Math.random() * 260) + 'px');
+    el.style.setProperty('--rot', (Math.random() * 500 - 250) + 'deg');
+    el.style.animationDelay = (Math.random() * .18) + 's';
+    host.appendChild(el);
+  }
+  document.body.appendChild(host);
+  setTimeout(() => host.remove(), 1400);
+}
+
+/* =====================================================================
+   RENDERING
+===================================================================== */
+let activeTab = 'standings';
+
+function renderAll(){
+  renderHead();
+  renderStandings();
+  renderHistory();
+  renderPlayers();
+  $('#btnLog').disabled = state.players.length < 2;
+}
+
+function renderHead(){
+  $('#tripName').textContent = state.trip.name;
+  const n = Math.max(1, tripDayOf(todayStr()));
+  $('#dayChip').textContent = 'Day ' + n;
+}
+
+/* ---------- standings view ---------- */
+function renderStandings(){
+  const host = $('#view-standings');
+  const ms = orderedMatches();
+
+  if(state.players.length === 0){
+    host.innerHTML =
+      '<div class="card empty">' +
+        '<div class="big" aria-hidden="true">' +
+          '<svg width="52" height="52" style="color:var(--s1)"><use href="#i-meeple"/></svg>' +
+          '<svg width="52" height="52" style="color:var(--s2)"><use href="#i-meeple"/></svg>' +
+          '<svg width="52" height="52" style="color:var(--s3)"><use href="#i-meeple"/></svg>' +
+        '</div>' +
+        '<h2>Who’s playing this week?</h2>' +
+        '<p>Add your crew first — then log every game you play and watch the race unfold.</p>' +
+        '<button class="btn" id="goPlayers">Add players</button>' +
+      '</div>';
+    $('#goPlayers').addEventListener('click', () => switchTab('players'));
+    return;
+  }
+
+  const rows = standings();
+  const maxPts = Math.max(...rows.map(r => r.pts), 0);
+  const leaders = rows.filter(r => r.rank === 1 && r.pts > 0).map(r => r.p.id);
+  const topGame = mostPlayedGame();
+
+  let html = '';
+
+  // stat tiles
+  html += '<div class="tiles">' +
+    tile('Games logged', String(ms.length)) +
+    tile('Players', String(state.players.length)) +
+    tile('Top game', topGame ? topGame : '—') +
+  '</div>';
+
+  // standings card
+  html += '<div class="card"><div class="card-h"><h2>Standings</h2></div>' +
+    '<p class="card-sub">' + esc(SCHEMES[state.settings.scheme].label) + ' scoring · ties share the better place</p>';
+  if(ms.length === 0){
+    html += '<div class="empty" style="padding:18px"><h2 style="font-size:16px">No games yet</h2>' +
+      '<p>Tap the + button to log your first game.</p></div>';
+  }
+  html += rows.map(r => {
+    const isLead = leaders.includes(r.p.id);
+    return '<div class="standing' + (isLead ? ' lead' : '') + '" style="--pc:' + slotVar(r.p) + '">' +
+      '<div class="rank">' + r.rank + '</div>' +
+      meeple(r.p, {crown: isLead}) +
+      '<div class="who"><div class="nm">' + esc(r.p.name) + '</div>' +
+        '<div class="sub">' + r.wins + ' ' + (r.wins === 1 ? 'win' : 'wins') + ' · ' + r.played + ' ' + (r.played === 1 ? 'game' : 'games') + '</div></div>' +
+      '<div class="pts">' + fmtNum(r.pts) + '<small>pts</small></div>' +
+      '<div class="bar-track"><div class="bar" style="width:' + (maxPts > 0 ? (r.pts / maxPts * 100) : 0) + '%"></div></div>' +
+    '</div>';
+  }).join('');
+  html += '</div>';
+
+  // race chart card
+  if(ms.length >= 1 && state.players.length >= 2){
+    html += '<div class="card" id="raceCard"><div class="card-h"><h2>The race</h2></div>' +
+      '<p class="card-sub">Total points after each game</p>' +
+      '<div class="race-wrap" id="raceWrap">' +
+        '<div id="raceSvg"></div>' +
+        '<div class="crosshair" id="raceX"></div>' +
+        '<div class="race-tip" id="raceTip"></div>' +
+      '</div>' +
+      '<div class="legend" id="raceLegend"></div>' +
+    '</div>';
+  }
+
+  host.innerHTML = html;
+  if(ms.length >= 1 && state.players.length >= 2) renderRace();
+}
+
+function tile(label, value){
+  return '<div class="tile"><div class="t-label">' + esc(label) + '</div>' +
+    '<div class="t-value">' + esc(value) + '</div></div>';
+}
+
+function mostPlayedGame(){
+  const counts = {};
+  for(const m of state.matches){
+    const k = m.game;
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  let best = null, n = 0;
+  for(const k in counts){ if(counts[k] > n){ n = counts[k]; best = k; } }
+  return best;
+}
+
+/* ---------- race chart ---------- */
+let raceData = null;
+
+function renderRace(){
+  const wrap = $('#raceWrap');
+  if(!wrap) return;
+  const ms = orderedMatches();
+  const W = Math.max(wrap.clientWidth || 560, 280);
+  const H = 224;
+  const padL = 34, padR = 16, padT = 12, padB = 26;
+
+  // cumulative points per player, index 0 = start
+  const series = state.players.map(p => ({ p, pts: [0] }));
+  for(const m of ms){
+    for(const s of series){
+      const r = m.results.find(x => x.playerId === s.p.id);
+      s.pts.push(s.pts[s.pts.length - 1] + (r ? pointsFor(r.rank, m.results.length) : 0));
+    }
+  }
+  const N = ms.length;
+  const lead = standings()[0];
+  const dataMax = Math.max(1, ...series.map(s => s.pts[N]));
+  const yTicks = niceTicks(dataMax);
+  const yMax = yTicks[yTicks.length - 1];
+  const X = i => padL + (W - padL - padR) * (i / Math.max(N, 1));
+  const Y = v => padT + (H - padT - padB) * (1 - v / yMax);
+
+  let g = '';
+  // gridlines + y tick labels (hairline, solid)
+  for(const t of yTicks){
+    g += '<line x1="' + padL + '" y1="' + Y(t) + '" x2="' + (W - padR) + '" y2="' + Y(t) + '" stroke="var(--grid)" stroke-width="1"/>';
+    g += '<text x="' + (padL - 7) + '" y="' + (Y(t) + 3.5) + '" text-anchor="end" fill="var(--muted)">' + t + '</text>';
+  }
+  // x ticks
+  const step = Math.max(1, Math.ceil(N / 6));
+  for(let i = step; i <= N; i += step){
+    g += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" fill="var(--muted)">' + i + '</text>';
+  }
+  // baseline
+  g += '<line x1="' + padL + '" y1="' + Y(0) + '" x2="' + (W - padR) + '" y2="' + Y(0) + '" stroke="var(--baseline)" stroke-width="1"/>';
+  // lines + end dots
+  for(const s of series){
+    const c = slotVar(s.p);
+    const d = s.pts.map((v,i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
+    g += '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    g += '<circle cx="' + X(N).toFixed(1) + '" cy="' + Y(s.pts[N]).toFixed(1) + '" r="4.5" fill="' + c + '" stroke="var(--card)" stroke-width="2"/>';
+  }
+  // selective direct label: the current leader only
+  if(lead && lead.pts > 0){
+    const s = series.find(x => x.p.id === lead.p.id);
+    if(s){
+      const ly = Math.max(Y(s.pts[N]) - 9, 11);
+      let nm = s.p.name.length > 10 ? s.p.name.slice(0, 10) + '…' : s.p.name;
+      g += '<text x="' + (X(N) - 8) + '" y="' + ly + '" text-anchor="end" fill="var(--ink2)" font-weight="650">' + esc(nm) + ' · ' + fmtNum(s.pts[N]) + '</text>';
+    }
+  }
+
+  $('#raceSvg').innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" ' +
+    'aria-label="Cumulative points per player after each game">' + g + '</svg>';
+
+  $('#raceLegend').innerHTML = state.players.map(p =>
+    '<span class="lg" style="--pc:' + slotVar(p) + '"><span class="mdot"></span>' + esc(p.name) + '</span>'
+  ).join('');
+
+  raceData = { series, ms, N, W, H, padL, padR, padT, padB, X, Y };
+}
+
+function niceTicks(max){
+  const raw = max / 4;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  let step = pow;
+  for(const m of [1, 2, 5, 10]){ if(m * pow >= raw){ step = m * pow; break; } }
+  const top = Math.ceil(max / step) * step;
+  const out = [];
+  for(let v = 0; v <= top + 1e-9; v += step) out.push(Math.round(v * 100) / 100);
+  return out;
+}
+
+function raceHover(ev){
+  if(!raceData) return;
+  const wrap = $('#raceWrap');
+  const rect = wrap.getBoundingClientRect();
+  const px = ev.clientX - rect.left;
+  const { N, padL, padR, W, H, padB, padT, X, series, ms } = raceData;
+  const plotW = W - padL - padR;
+  let i = Math.round((px - padL) / plotW * Math.max(N,1));
+  i = Math.max(0, Math.min(N, i));
+
+  const xpx = X(i);
+  const xh = $('#raceX');
+  xh.style.display = 'block';
+  xh.style.left = xpx + 'px';
+  xh.style.height = (H - padB) + 'px';
+
+  const tip = $('#raceTip');
+  const title = i === 0 ? 'Start' :
+    '#' + i + ' · ' + esc(ms[i-1].game) + ' · ' + esc(fmtDate(ms[i-1].date, {month:'short', day:'numeric'}));
+  const rows = [...series].sort((a,b) => b.pts[i] - a.pts[i]).map(s =>
+    '<div class="tt-row" style="--pc:' + slotVar(s.p) + '"><span class="mdot"></span>' +
+    '<span>' + esc(s.p.name) + '</span><b>' + fmtNum(s.pts[i]) + '</b></div>'
+  ).join('');
+  tip.innerHTML = '<div class="tt-title">' + title + '</div>' + rows;
+  tip.style.display = 'block';
+  const tw = tip.offsetWidth;
+  tip.style.left = (xpx + tw + 20 < W ? xpx + 12 : xpx - tw - 12) + 'px';
+  tip.style.top = (padT + 2) + 'px';
+}
+function raceLeave(){
+  const xh = $('#raceX'), tip = $('#raceTip');
+  if(xh) xh.style.display = 'none';
+  if(tip) tip.style.display = 'none';
+}
+
+/* ---------- history view ---------- */
+function renderHistory(){
+  const host = $('#view-history');
+  const ms = orderedMatches().reverse();
+  if(ms.length === 0){
+    host.innerHTML = '<div class="card empty"><h2>Nothing logged yet</h2>' +
+      '<p>Every game you log shows up here, day by day.</p></div>';
+    return;
+  }
+  let html = '';
+  let curDay = null;
+  for(const m of ms){
+    if(m.date !== curDay){
+      curDay = m.date;
+      const dn = tripDayOf(m.date);
+      html += '<div class="day-h"><h2>' + esc(fmtDate(m.date, {weekday:'long', month:'short', day:'numeric'})) + '</h2>' +
+        (dn >= 1 ? '<span>Day ' + dn + '</span>' : '') + '</div>';
+    }
+    html += matchCard(m);
+  }
+  host.innerHTML = html;
+  $$('#view-history [data-edit]').forEach(b => b.addEventListener('click', () => openLogSheet(b.dataset.edit)));
+}
+
+function matchCard(m){
+  const P = m.results.length;
+  const sorted = [...m.results].sort((a,b) => (a.rank ?? 99) - (b.rank ?? 99));
+  const rows = sorted.map(r => {
+    const p = playerById(r.playerId);
+    if(!p) return '';
+    const pts = pointsFor(r.rank, P);
+    return '<div class="pl">' + (r.rank ? ordinal(r.rank) : '—') + '</div>' +
+      '<span class="mdot" style="--pc:' + slotVar(p) + '"></span>' +
+      '<div class="rn">' + esc(p.name) + '</div>' +
+      '<div class="sc">' + (r.score != null ? fmtNum(r.score) : '') + '</div>' +
+      '<div class="pp">' + (pts > 0 ? '+' + fmtNum(pts) : '·') + '</div>';
+  }).join('');
+  return '<div class="card match">' +
+    '<div class="m-top"><h3>' + esc(m.game) + '</h3>' +
+      '<span class="m-meta">' + P + ' players' + (m.mode === 'scores' && m.lowWins ? ' · low wins' : '') + '</span></div>' +
+    '<div class="res">' + rows + '</div>' +
+    '<div class="m-actions"><button class="link-btn" data-edit="' + m.id + '">Edit</button></div>' +
+  '</div>';
+}
+
+/* ---------- players view ---------- */
+function renderPlayers(){
+  const host = $('#view-players');
+  const rows = standings();
+  const byId = new Map(rows.map(r => [r.p.id, r]));
+  let html = '<div class="card"><div class="card-h"><h2>Players</h2></div>' +
+    '<p class="card-sub">Everyone gets a color for the whole week · up to ' + MAX_PLAYERS + ' players</p>';
+  if(state.players.length === 0){
+    html += '<p class="hint" style="margin:4px 0 10px">No players yet. Add at least two to start logging games.</p>';
+  }
+  html += state.players.map(p => {
+    const st = byId.get(p.id);
+    return '<div class="player-row" style="--pc:' + slotVar(p) + '">' +
+      meeple(p) +
+      '<div class="pinfo"><div class="nm">' + esc(p.name) + '</div>' +
+      '<div class="sub">' + fmtNum(st.pts) + ' pts · ' + st.wins + ' ' + (st.wins === 1 ? 'win' : 'wins') + ' · ' + st.played + ' ' + (st.played === 1 ? 'game' : 'games') + '</div></div>' +
+      '<button class="btn ghost small" data-editp="' + p.id + '">Edit</button>' +
+    '</div>';
+  }).join('');
+  if(state.players.length < MAX_PLAYERS){
+    html += '<div class="add-row"><input class="tin" id="npName" placeholder="Player name" maxlength="40" ' +
+      'autocomplete="off" enterkeyhint="done" aria-label="New player name">' +
+      '<button class="btn" id="npAdd">Add</button></div>';
+  } else {
+    html += '<p class="hint" style="margin-top:10px">All ' + MAX_PLAYERS + ' color slots are taken.</p>';
+  }
+  html += '</div>';
+  host.innerHTML = html;
+
+  const add = () => {
+    const inp = $('#npName');
+    const name = inp.value.trim();
+    if(!name) return;
+    if(state.players.some(p => p.name.toLowerCase() === name.toLowerCase())){
+      toast('There’s already a player called ' + name + '.');
+      return;
+    }
+    let slot = 0;
+    const used = new Set(state.players.map(p => p.slot));
+    while(used.has(slot)) slot++;
+    state.players.push({ id: uid(), name: name.slice(0,40), slot });
+    save(); renderAll();
+    const again = $('#npName');
+    if(again) again.focus();
+  };
+  const addBtn = $('#npAdd');
+  if(addBtn){
+    addBtn.addEventListener('click', add);
+    $('#npName').addEventListener('keydown', e => { if(e.key === 'Enter') add(); });
+  }
+  $$('#view-players [data-editp]').forEach(b => b.addEventListener('click', () => openPlayerSheet(b.dataset.editp)));
+}
+
+/* =====================================================================
+   SHEETS
+===================================================================== */
+function openSheet(html){
+  const host = $('#sheetHost');
+  $('#sheetBody').innerHTML = '<div class="grab" aria-hidden="true"></div>' + html;
+  host.classList.add('open');
+  host.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(){
+  const host = $('#sheetHost');
+  host.classList.remove('open');
+  host.setAttribute('aria-hidden', 'true');
+  $('#sheetBody').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+/* ---------- log / edit match sheet ---------- */
+let draft = null;
+
+function openLogSheet(editId){
+  const editing = editId ? state.matches.find(m => m.id === editId) : null;
+  if(editId && !editing) return;
+  if(state.players.length < 2){ toast('Add at least two players first.'); return; }
+
+  if(editing){
+    draft = {
+      id: editing.id, seq: editing.seq,
+      game: editing.game, date: editing.date, mode: editing.mode, lowWins: editing.lowWins,
+      participants: editing.results.map(r => r.playerId),
+      winners: editing.mode === 'winner' ? editing.results.filter(r => r.rank === 1).map(r => r.playerId) : [],
+      order: editing.mode === 'ranking' ? [...editing.results].sort((a,b) => a.rank - b.rank).map(r => r.playerId) : [],
+      scores: editing.mode === 'scores' ? Object.fromEntries(editing.results.map(r => [r.playerId, r.score])) : {}
+    };
+  } else {
+    draft = {
+      id: null, seq: null,
+      game: '', date: todayStr(), mode: 'winner', lowWins: false,
+      participants: state.players.map(p => p.id),
+      winners: [], order: [], scores: {}
+    };
+  }
+
+  const gameNames = [...new Set(state.matches.map(m => m.game))].sort();
+  openSheet(
+    '<div class="sh-head"><h2>' + (editing ? 'Edit game' : 'Log a game') + '</h2>' +
+      '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
+
+    '<div class="field"><label for="fGame">What did you play?</label>' +
+      '<input class="tin" id="fGame" list="gameList" placeholder="Catan, Codenames, Ping-pong…" maxlength="60" value="' + esc(draft.game) + '">' +
+      '<datalist id="gameList">' + gameNames.map(g => '<option value="' + esc(g) + '">').join('') + '</datalist></div>' +
+
+    '<div class="field"><label for="fDate">When?</label>' +
+      '<input class="tin" id="fDate" type="date" value="' + esc(draft.date) + '"></div>' +
+
+    '<div class="field"><label>Who played?</label><div class="chips" id="fWho"></div></div>' +
+
+    '<div class="field"><label>How do you want to record it?</label>' +
+      '<div class="seg" id="fMode" role="group" aria-label="Result type">' +
+        '<button data-mode="winner" aria-pressed="false">Winner</button>' +
+        '<button data-mode="ranking" aria-pressed="false">Ranking</button>' +
+        '<button data-mode="scores" aria-pressed="false">Scores</button>' +
+      '</div></div>' +
+
+    '<div class="field" id="fModeArea"></div>' +
+    '<p class="form-err" id="fErr" role="alert"></p>' +
+    '<div class="foot">' +
+      (editing ? '<button class="btn ghost" id="fDelete">Delete</button>' : '') +
+      '<button class="btn" id="fSave">' + (editing ? 'Save changes' : 'Save game') + '</button>' +
+    '</div>'
+  );
+
+  $('#shClose').addEventListener('click', closeSheet);
+  $('#fGame').addEventListener('input', e => {
+    draft.game = e.target.value;
+    const pref = state.gamePrefs[draft.game.trim().toLowerCase()];
+    if(pref && draft.mode === 'scores'){ draft.lowWins = pref.lowWins; renderModeArea(); }
+  });
+  $('#fDate').addEventListener('change', e => { draft.date = e.target.value || todayStr(); });
+  $$('#fMode button').forEach(b => b.addEventListener('click', () => {
+    draft.mode = b.dataset.mode;
+    const pref = state.gamePrefs[draft.game.trim().toLowerCase()];
+    if(pref && draft.mode === 'scores') draft.lowWins = pref.lowWins;
+    renderModeSeg(); renderModeArea();
+  }));
+  $('#fSave').addEventListener('click', saveMatch);
+  const del = $('#fDelete');
+  if(del) del.addEventListener('click', () => {
+    if(del.dataset.armed){
+      state.matches = state.matches.filter(m => m.id !== draft.id);
+      save(); closeSheet(); renderAll(); toast('Game deleted.');
+    } else {
+      del.dataset.armed = '1';
+      del.textContent = 'Really delete?';
+      del.classList.add('danger-solid');
+      del.classList.remove('ghost');
+    }
+  });
+
+  renderWho(); renderModeSeg(); renderModeArea();
+}
+
+function renderWho(){
+  $('#fWho').innerHTML = state.players.map(p => {
+    const on = draft.participants.includes(p.id);
+    return '<button class="chip" style="--pc:' + slotVar(p) + '" data-pid="' + p.id + '" aria-pressed="' + on + '">' +
+      '<span class="mdot"></span>' + esc(p.name) + '</button>';
+  }).join('');
+  $$('#fWho .chip').forEach(c => c.addEventListener('click', () => {
+    const id = c.dataset.pid;
+    if(draft.participants.includes(id)){
+      draft.participants = draft.participants.filter(x => x !== id);
+      draft.winners = draft.winners.filter(x => x !== id);
+      draft.order = draft.order.filter(x => x !== id);
+      delete draft.scores[id];
+    } else {
+      draft.participants.push(id);
+    }
+    renderWho(); renderModeArea();
+  }));
+}
+
+function renderModeSeg(){
+  $$('#fMode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === draft.mode)));
+}
+
+function participantsInOrder(){
+  return state.players.filter(p => draft.participants.includes(p.id));
+}
+
+function renderModeArea(){
+  const host = $('#fModeArea');
+  const ps = participantsInOrder();
+
+  if(draft.mode === 'winner'){
+    host.innerHTML = '<label style="display:block" class="hint">Tap the winner — or several, for team and co-op wins. Everyone else just gets a game played.</label>' +
+      '<div class="chips" style="margin-top:8px">' + ps.map(p => {
+        const on = draft.winners.includes(p.id);
+        return '<button class="chip" style="--pc:' + slotVar(p) + '" data-win="' + p.id + '" aria-pressed="' + on + '">' +
+          '<span class="mdot"></span>' + esc(p.name) + (on ? ' 🏆' : '') + '</button>';
+      }).join('') + '</div>';
+    $$('#fModeArea [data-win]').forEach(c => c.addEventListener('click', () => {
+      const id = c.dataset.win;
+      draft.winners = draft.winners.includes(id) ? draft.winners.filter(x => x !== id) : [...draft.winners, id];
+      renderModeArea();
+    }));
+
+  } else if(draft.mode === 'ranking'){
+    host.innerHTML = '<label style="display:block" class="hint">Tap players in finishing order — first tap is 1st place. Tap again to remove.</label>' +
+      '<div class="chips" style="margin-top:8px">' + ps.map(p => {
+        const idx = draft.order.indexOf(p.id);
+        return '<button class="chip" style="--pc:' + slotVar(p) + '" data-ord="' + p.id + '" aria-pressed="' + (idx >= 0) + '">' +
+          '<span class="mdot"></span>' + esc(p.name) +
+          (idx >= 0 ? '<span class="place-badge">' + (idx + 1) + '</span>' : '') + '</button>';
+      }).join('') + '</div>' +
+      (draft.order.length ? '<p style="margin:10px 0 0"><button class="link-btn" id="ordClear">Clear order</button></p>' : '');
+    $$('#fModeArea [data-ord]').forEach(c => c.addEventListener('click', () => {
+      const id = c.dataset.ord;
+      draft.order = draft.order.includes(id) ? draft.order.filter(x => x !== id) : [...draft.order, id];
+      renderModeArea();
+    }));
+    const oc = $('#ordClear');
+    if(oc) oc.addEventListener('click', () => { draft.order = []; renderModeArea(); });
+
+  } else { // scores
+    host.innerHTML =
+      '<label class="switch"><input type="checkbox" id="fLow"' + (draft.lowWins ? ' checked' : '') + '> Lowest score wins (golf-style)</label>' +
+      ps.map(p =>
+        '<div class="score-row" style="--pc:' + slotVar(p) + '"><span class="mdot"></span>' +
+        '<div class="nm">' + esc(p.name) + '</div>' +
+        '<div class="place" data-place="' + p.id + '"></div>' +
+        '<input class="tin" inputmode="text" autocomplete="off" data-score="' + p.id + '" ' +
+          'value="' + (draft.scores[p.id] != null ? esc(String(draft.scores[p.id])) : '') + '" ' +
+          'placeholder="0" aria-label="Score for ' + esc(p.name) + '"></div>'
+      ).join('');
+    $('#fLow').addEventListener('change', e => { draft.lowWins = e.target.checked; updatePlacePreview(); });
+    $$('#fModeArea [data-score]').forEach(inp => {
+      inp.addEventListener('input', () => { draft.scores[inp.dataset.score] = inp.value; updatePlacePreview(); });
+    });
+    updatePlacePreview();
   }
 }
 
-/* ================= main update ================= */
-function update(){
-  const r = compute(S);
-
-  const hero = document.getElementById('heroAnnual');
-  hero.textContent = moneyS(r.annualNet);
-  hero.classList.toggle('neg', r.annualNet < 0);
-  document.getElementById('heroNote').textContent =
-    r.annualNet >= 0
-      ? `Konzervativní odhad při ${nf0.format(S.orders)} objednávkách měsíčně, ${nf0.format(S.adoption)}% podílu AlzaBoxů a růstu o ${nf1.format(S.uplift)} % na zásilkách přes AlzaBox.` +
-        (S.integration > 0 ? ` Jednorázové náklady na zapojení ${money(S.integration)} jsou už odečteny.` : '')
-      : 'S aktuálními vstupy vychází přínos záporně – upravte ceny dopravy nebo podíl AlzaBoxů podle reálné nabídky.';
-
-  const mk = document.getElementById('mobileKpiVal');
-  if (mk) mk.textContent = moneyS(r.annualNet);
-
-  const tM = document.getElementById('tMonthly');
-  tM.textContent = moneyS(r.monthly);
-  tM.classList.toggle('neg', r.monthly < 0);
-  tM.classList.toggle('pos', r.monthly >= 0);
-
-  const tP = document.getElementById('tPerParcel');
-  tP.textContent = moneyS(r.perParcel);
-  tP.classList.toggle('neg', r.perParcel < 0);
-
-  document.getElementById('tExtraOrders').textContent = '+' + nf0.format(Math.round(r.extraOrders));
-
-  const pb = document.getElementById('tPayback');
-  const pbSub = document.getElementById('tPaybackSub');
-  if (S.integration <= 0){ pb.textContent = 'ihned'; pbSub.textContent = 'bez jednorázových nákladů'; }
-  else if (r.payback === null){ pb.textContent = '—'; pbSub.textContent = 'při záporném přínosu nelze určit'; }
-  else if (r.payback > 60){ pb.textContent = '> 5 let'; pbSub.textContent = 'upravte vstupy podle reálné nabídky'; }
-  else { pb.textContent = nf1.format(r.payback) + ' měs.'; pbSub.textContent = `z nákladů ${money(S.integration)}`; }
-
-  document.getElementById('cumSub').textContent = S.integration > 0
-    ? `Po odečtení jednorázových nákladů ${money(S.integration)} na zapojení`
-    : 'Čistý přínos bez jednorázových nákladů';
-
-  const scenKey = syncScenarioSelect();
-  renderScenarioTable(scenKey);
-  chartCost(r);
-  chartCum(r);
-  renderBreakdown(r);
-  renderSensitivity();
-  renderArgs(r);
-
-  document.getElementById('printAssumptions').innerHTML =
-    `<b>Vstupy modelu:</b> ${nf0.format(S.orders)} objednávek/měs. · hodnota objednávky ${money(S.aov)} · marže ${S.margin} % · ` +
-    `doprava dnes ${money(S.curShip)} + ${nf1.format(S.curMin)} min balení (${money(S.hourly)}/h) · ` +
-    `AlzaBox ${money(S.boxShip)} + ${nf1.format(S.boxMin)} min · adopce ${nf0.format(S.adoption)} % · růst objednávek +${nf1.format(S.uplift)} % · ` +
-    `zapojení ${money(S.integration)} · vygenerováno ${new Date().toLocaleDateString('cs-CZ')} · hodnoty jsou modelové`;
-
-  saveState();
-}
-
-/* ================= theme ================= */
-function initTheme(){
-  const btn = document.getElementById('themeBtn');
-  btn.addEventListener('click', () => {
-    const cur = document.documentElement.dataset.theme
-      || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
-    update();
+/* Refresh the little "1st / 2nd" badges beside score inputs without
+   re-rendering the form (a re-render mid-typing would steal focus). */
+function updatePlacePreview(){
+  const ps = participantsInOrder();
+  const allIn = ps.length > 0 && ps.every(p => isNum(draft.scores[p.id]));
+  const ranks = allIn ? ranksFromScores(ps.map(p => ({ playerId: p.id, score: scoreNum(draft.scores[p.id]) })), draft.lowWins) : null;
+  $$('#fModeArea [data-place]').forEach(el => {
+    el.textContent = ranks ? ordinal(ranks.get(el.dataset.place)) : '';
   });
 }
 
-/* ================= boot ================= */
-buildFields();
-buildScenarioSelect();
-loadState();
-readUrl();
-syncAllFields();
-initTheme();
-document.getElementById('scompTable').addEventListener('click', ev => {
-  const btn = ev.target.closest('[data-scenario]');
-  if (btn) applyScenario(btn.dataset.scenario);
+function scoreNum(v){ return Number(String(v).trim().replace(',', '.')); }
+function isNum(v){
+  if(v == null || String(v).trim() === '') return false;
+  return isFinite(scoreNum(v));
+}
+
+function saveMatch(){
+  const err = $('#fErr');
+  const fail = msg => { err.textContent = msg; err.classList.add('show'); };
+  err.classList.remove('show');
+
+  const game = $('#fGame').value.trim();
+  draft.game = game;
+  if(!game) return fail('Give the game a name.');
+  if(!draft.date || !/^\d{4}-\d{2}-\d{2}$/.test(draft.date)) return fail('Pick a date.');
+  const ps = participantsInOrder();
+  if(ps.length < 2) return fail('Pick at least two players.');
+
+  let results;
+  if(draft.mode === 'winner'){
+    if(draft.winners.length < 1) return fail('Tap at least one winner.');
+    results = ps.map(p => ({ playerId: p.id, score: null, rank: draft.winners.includes(p.id) ? 1 : null }));
+  } else if(draft.mode === 'ranking'){
+    if(draft.order.length !== ps.length) return fail('Rank everyone — ' + (ps.length - draft.order.length) + ' still missing.');
+    results = draft.order.map((pid, i) => ({ playerId: pid, score: null, rank: i + 1 }));
+  } else {
+    for(const p of ps){
+      if(!isNum(draft.scores[p.id])) return fail('Enter a score for ' + p.name + '.');
+    }
+    const entries = ps.map(p => ({ playerId: p.id, score: scoreNum(draft.scores[p.id]) }));
+    const ranks = ranksFromScores(entries, draft.lowWins);
+    results = entries.map(e => ({ playerId: e.playerId, score: e.score, rank: ranks.get(e.playerId) }));
+    state.gamePrefs[game.toLowerCase()] = { lowWins: draft.lowWins };
+  }
+
+  if(draft.id){
+    const i = state.matches.findIndex(m => m.id === draft.id);
+    state.matches[i] = { id: draft.id, seq: draft.seq, game, date: draft.date, mode: draft.mode, lowWins: !!draft.lowWins, results };
+    toast('Game updated.');
+  } else {
+    state.matches.push({ id: uid(), seq: ++seqCounter, game, date: draft.date, mode: draft.mode, lowWins: !!draft.lowWins, results });
+    const winners = results.filter(r => r.rank === 1).map(r => playerById(r.playerId)).filter(Boolean).map(p => p.name);
+    toast(winners.length ? winners.join(' & ') + ' take' + (winners.length > 1 ? '' : 's') + ' it! 🏆' : 'Game saved.');
+    confetti();
+  }
+  save(); closeSheet();
+  switchTab('standings');
+  renderAll();
+}
+
+/* ---------- player sheet ---------- */
+function openPlayerSheet(pid){
+  const p = playerById(pid);
+  if(!p) return;
+  const hasResults = state.matches.some(m => m.results.some(r => r.playerId === pid));
+  openSheet(
+    '<div class="sh-head">' + meeple(p) + '<h2>' + esc(p.name) + '</h2>' +
+      '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
+    '<div class="field"><label for="pName">Name</label>' +
+      '<input class="tin" id="pName" maxlength="40" value="' + esc(p.name) + '"></div>' +
+    (hasResults
+      ? '<p class="hint">' + esc(p.name) + ' has logged games, so they can’t be removed — that would rewrite history.</p>'
+      : '') +
+    '<div class="foot">' +
+      (!hasResults ? '<button class="btn ghost" id="pDelete">Remove</button>' : '') +
+      '<button class="btn" id="pSave">Save</button>' +
+    '</div>'
+  );
+  $('#shClose').addEventListener('click', closeSheet);
+  $('#pSave').addEventListener('click', () => {
+    const name = $('#pName').value.trim();
+    if(!name){ toast('Name can’t be empty.'); return; }
+    if(state.players.some(x => x.id !== pid && x.name.toLowerCase() === name.toLowerCase())){
+      toast('There’s already a player called ' + name + '.'); return;
+    }
+    p.name = name.slice(0,40);
+    save(); closeSheet(); renderAll();
+  });
+  const del = $('#pDelete');
+  if(del) del.addEventListener('click', () => {
+    if(del.dataset.armed){
+      state.players = state.players.filter(x => x.id !== pid);
+      save(); closeSheet(); renderAll(); toast('Player removed.');
+    } else {
+      del.dataset.armed = '1';
+      del.textContent = 'Really remove?';
+      del.classList.add('danger-solid');
+      del.classList.remove('ghost');
+    }
+  });
+}
+
+/* ---------- settings sheet ---------- */
+function openSettingsSheet(){
+  openSheet(
+    '<div class="sh-head"><h2>Settings</h2>' +
+      '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
+
+    '<div class="field"><label for="sName">Scoreboard name</label>' +
+      '<input class="tin" id="sName" maxlength="60" value="' + esc(state.trip.name) + '"></div>' +
+
+    '<div class="field"><label for="sStart">First day of the trip</label>' +
+      '<input class="tin" id="sStart" type="date" value="' + esc(state.trip.start) + '"></div>' +
+
+    '<div class="field"><label>Scoring</label>' +
+      Object.entries(SCHEMES).map(([k,v]) =>
+        '<label class="radio-opt"><input type="radio" name="scheme" value="' + k + '"' + (state.settings.scheme === k ? ' checked' : '') + '>' +
+        '<span><span class="r-title">' + v.label + '</span><br><span class="r-sub">' + v.sub + '</span></span></label>'
+      ).join('') +
+      '<p class="hint" style="margin-top:6px">Games store placements, not points — switching here rescores the whole week instantly. Quick “Winner” entries award points to winners only; tied players share the better place.</p></div>' +
+
+    '<div class="field"><label>Your data</label>' +
+      '<div style="display:flex; gap:10px; flex-wrap:wrap">' +
+        '<button class="btn ghost small" id="sExport">Export backup</button>' +
+        '<button class="btn ghost small" id="sImport">Import backup</button>' +
+        '<input type="file" id="sFile" accept="application/json,.json" class="sr">' +
+      '</div>' +
+      '<p class="hint" style="margin-top:8px">Everything lives on this phone. One of you is the scorekeeper — export a backup now and then, or to hand the scoreboard to another phone.</p></div>' +
+
+    '<div class="field"><label>Danger zone</label>' +
+      '<button class="btn ghost small" id="sReset">Start over…</button></div>' +
+
+    '<div class="foot"><button class="btn" id="sSave">Done</button></div>'
+  );
+
+  $('#shClose').addEventListener('click', closeSheet);
+  $('#sSave').addEventListener('click', () => {
+    const name = $('#sName').value.trim();
+    if(name) state.trip.name = name.slice(0,60);
+    const st = $('#sStart').value;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(st)) state.trip.start = st;
+    const sch = document.querySelector('input[name="scheme"]:checked');
+    if(sch) state.settings.scheme = sch.value;
+    save(); closeSheet(); renderAll();
+  });
+
+  $('#sExport').addEventListener('click', exportData);
+  $('#sImport').addEventListener('click', () => $('#sFile').click());
+  $('#sFile').addEventListener('change', importData);
+
+  const rst = $('#sReset');
+  rst.addEventListener('click', () => {
+    if(rst.dataset.armed){
+      state = freshState();
+      save(); closeSheet(); renderAll(); toast('Fresh scoreboard — have a great week!');
+    } else {
+      rst.dataset.armed = '1';
+      rst.textContent = 'Really erase everything?';
+      rst.classList.add('danger-solid');
+      rst.classList.remove('ghost');
+    }
+  });
+}
+
+function exportData(){
+  const json = JSON.stringify(state, null, 2);
+  const fname = 'game-week-backup-' + todayStr() + '.json';
+  if(window.claude && window.claude.downloads && window.claude.downloads.save){
+    window.claude.downloads.save({ filename: fname, data: json })
+      .then(() => toast('Backup saved.'))
+      .catch(() => {}); // viewer declined — nothing to clean up
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('Backup downloaded.');
+}
+
+function importData(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const next = sanitizeState(parsed);
+      if(!next || (!next.players.length && !next.matches.length)) throw new Error('empty');
+      state = next;
+      seqCounter = state.matches.reduce((m,x) => Math.max(m, x.seq || 0), 0);
+      save(); closeSheet(); renderAll();
+      toast('Backup imported — ' + state.players.length + ' players, ' + state.matches.length + ' games.');
+    } catch(e){
+      toast('That file doesn’t look like a Game Week backup.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* =====================================================================
+   NAVIGATION + INIT
+===================================================================== */
+function switchTab(tab){
+  activeTab = tab;
+  $$('.tabbar .tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  $('#view-standings').hidden = tab !== 'standings';
+  $('#view-history').hidden = tab !== 'history';
+  $('#view-players').hidden = tab !== 'players';
+  if(tab === 'standings') renderStandings();
+}
+
+$$('.tabbar .tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+$('#btnLog').addEventListener('click', () => openLogSheet(null));
+$('#btnSettings').addEventListener('click', openSettingsSheet);
+$('#sheetBack').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && $('#sheetHost').classList.contains('open')) closeSheet();
 });
-document.getElementById('resetBtn').addEventListener('click', () => applyScenario('stredni'));
-document.getElementById('printBtn').addEventListener('click', () => window.print());
-document.getElementById('mobileKpi').addEventListener('click', () =>
-  document.querySelector('.hero').scrollIntoView({behavior:'smooth', block:'start'}));
-document.getElementById('copyLinkBtn').addEventListener('click', () => copyText(shareUrl(), 'Odkaz s vašimi čísly zkopírován'));
-document.getElementById('copySummaryBtn').addEventListener('click', () => copyText(summaryText(compute(S)), 'Shrnutí zkopírováno do schránky'));
-update();
+
+// race chart hover / touch (delegated — the chart re-renders)
+document.addEventListener('pointermove', e => {
+  const wrap = e.target.closest && e.target.closest('#raceWrap');
+  if(wrap) raceHover(e); else raceLeave();
+});
+document.addEventListener('pointerdown', e => {
+  const wrap = e.target.closest && e.target.closest('#raceWrap');
+  if(wrap) raceHover(e);
+});
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if(activeTab === 'standings') renderRace(); }, 150);
+});
+
+load();
+renderAll();
+if(!storageOk){
+  toast('Private browsing? Data can’t be saved on this device.');
+}
 </script>
 </body>
 </html>
