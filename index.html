@@ -311,7 +311,7 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '1.7.1 · daily snapshot';
+const APP_VERSION = '1.7.2 · persistent storage';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -1615,6 +1615,12 @@ load();
 renderAll();
 if(!storageOk){
   toast('Private browsing? Data can’t be saved on this device.');
+}
+
+// Ask the OS to mark this app's storage persistent — never evicted under
+// disk pressure. Granted silently for installed apps; a harmless no-op elsewhere.
+if(navigator.storage && navigator.storage.persist){
+  navigator.storage.persist().catch(() => {});
 }
 
 // Offline support + self-update when served over http(s); a no-op for file://

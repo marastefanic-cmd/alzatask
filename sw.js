@@ -4,7 +4,7 @@
    Cache names are prefixed because <user>.github.io is one origin shared by
    every project site — activate must only garbage-collect its own caches. */
 const PREFIX = 'gameweek-';
-const CACHE = PREFIX + 'v9';
+const CACHE = PREFIX + 'v10';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
