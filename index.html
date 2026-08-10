@@ -217,6 +217,10 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .sheet .foot .btn{flex:1}
 @media (min-width:640px){ .sheet{left:50%; right:auto; transform:translateX(-50%); width:600px; border-radius:18px; bottom:24px} }
 
+/* ---------- preview bar ---------- */
+.preview-bar{background:var(--btn-ink); color:var(--btn-text); font-size:12.5px; font-weight:650;
+  text-align:center; padding:7px 14px}
+
 /* ---------- toast ---------- */
 .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(96px + env(safe-area-inset-bottom));
   z-index:60; background:var(--btn-ink); color:var(--btn-text); font-size:14px; font-weight:650;
@@ -311,7 +315,7 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '1.7.2 · persistent storage';
+const APP_VERSION = '1.7.3 · preview guard';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -1621,6 +1625,15 @@ if(!storageOk){
 // disk pressure. Granted silently for installed apps; a harmless no-op elsewhere.
 if(navigator.storage && navigator.storage.persist){
   navigator.storage.persist().catch(() => {});
+}
+
+// Any copy not running on the installable site is a preview whose storage the
+// host controls — say so permanently, in the app, so nobody keeps a real board here.
+if(!location.href.startsWith(INSTALL_URL)){
+  const bar = document.createElement('div');
+  bar.className = 'preview-bar';
+  bar.textContent = 'Preview copy — scores kept here can be lost. Keep the real board on the installed app (address in Settings).';
+  document.body.prepend(bar);
 }
 
 // Offline support + self-update when served over http(s); a no-op for file://
