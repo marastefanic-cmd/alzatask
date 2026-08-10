@@ -308,6 +308,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
+const APP_VERSION = '1.4 · margin scoring';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
 
@@ -1370,6 +1371,8 @@ function openSettingsSheet(){
 
     '<div class="field"><label>Danger zone</label>' +
       '<button class="btn ghost small" id="sReset">Start over…</button></div>' +
+
+    '<p class="hint" style="text-align:center; margin-top:18px">Game Week ' + esc(APP_VERSION) + '</p>' +
 
     '<div class="foot"><button class="btn" id="sSave">Done</button></div>'
   );
