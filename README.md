@@ -20,8 +20,9 @@ that phone between openings.
   players can join any game.
 - **Scoring** — *beat a player, earn the game's weight in points.* Every game has
   a weight — Light ×1, Standard ×2, Heavy ×3 (remembered per game name) — and a
-  match pays each player (players they finished ahead of) × weight. Winning a
-  heavy 9-player game pays 24; edging a light duel pays 1. Ties count as level,
+  match pays each player (players they finished ahead of) × weight, damped by
+  √(field − 1) so field size matters sublinearly: a 9-player win is worth about
+  three duels, not eight, and placements in between stay proportional. Ties count as level,
   not beaten; quick Winner entries pay winners only. In Scores games the margin
   matters: each beaten opponent is worth 1 plus up to 0.5 extra by how decisive
   the gap was — `bonus = ½ · gap / max(|yours| + |theirs|, match's widest gap)`

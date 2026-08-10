@@ -308,7 +308,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
-const APP_VERSION = '1.5 · self-updating';
+const APP_VERSION = '1.6 · fairer big games';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
 
@@ -432,7 +432,9 @@ const WEIGHT_LABELS = { 1: 'Light', 2: 'Standard', 3: 'Heavy' };
    of) × weight. Ties count as level, not beaten; unranked participants (quick
    "Winner" entries) count as finished behind everyone who placed.
    In Scores games the margin matters too: each beaten opponent is worth
-   1 + up to 0.5 extra, scaled by how decisively you beat them. */
+   1 + up to 0.5 extra, scaled by how decisively you beat them.
+   The total is damped by √(field−1): big games pay more than duels, but
+   sublinearly — a 9-player win is worth ~3 duels, not 8. */
 function pointsFor(result, match){
   if(result.rank == null) return 0;
   let sum = 0;
@@ -441,8 +443,9 @@ function pointsFor(result, match){
     const behind = x.rank == null ? true : x.rank > result.rank;
     if(behind) sum += 1 + marginBonus(result, x, match);
   }
+  const damp = Math.sqrt(Math.max(match.results.length - 1, 1));
   // quantize at the source so history "+pts" lines sum exactly to the standings total
-  return Math.round(sum * (match.weight || 2) * 10) / 10;
+  return Math.round(sum / damp * (match.weight || 2) * 10) / 10;
 }
 
 /* Relative margin of one pairwise win, in [0, 0.5]. The gap is scaled by the
@@ -1348,9 +1351,10 @@ function openSettingsSheet(){
       '<input class="tin" id="sStart" type="date" value="' + esc(state.trip.start) + '"></div>' +
 
     '<div class="field"><label>How scoring works</label>' +
-      '<p class="hint" style="font-size:13.5px">Beat a player, earn the game’s weight in points: Light ×1, Standard ×2, Heavy ×3. ' +
-      'Winning a heavy 9-player game pays 24; edging a light duel pays 1. The board ranks <b>points per game</b> ' +
-      '(with two “ghost games” added), so skipping a night doesn’t sink you — and one lucky win can’t clinch the week. ' +
+      '<p class="hint" style="font-size:13.5px">Beat a player, earn the game’s weight in points: Light ×1, Standard ×2, Heavy ×3 — ' +
+      'damped by the crowd (÷ √(players − 1)), so a 9-player win is worth about three duels, not eight. ' +
+      'The board ranks <b>points per game</b> (with two “ghost games” added), so skipping a night doesn’t sink you — ' +
+      'and one lucky win can’t clinch the week. ' +
       'Ties count as level, not beaten; quick “Winner” entries pay winners only. ' +
       'In team games your team’s finish is yours: you beat everyone on teams behind you, and teammates count as level. ' +
       'In score games, margins matter: each player you beat is worth up to +50% extra the more decisively you beat them — ' +
