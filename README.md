@@ -26,11 +26,12 @@ that phone between openings.
   not beaten; quick Winner entries pay winners only. Every logging mode pays
   the same maximum — a beaten opponent is worth at most 1. In Scores games the
   margin refines that value downward: each beaten opponent is worth
-  `½ + ½ · gap / max(|yours| + |theirs|, match's widest gap)`, so a clear win
-  pays exactly what a ranked win pays while a 2:1 squeaker pays as little as
-  half — at any score scale, golf scoring and negative scores included.
-  Rankings support shared places (tap a placed player again to tie them with
-  the player before).
+  `½ + ½ · gap / max(|yours| + |theirs|, match's widest gap)`, so a shutout
+  pays exactly what a ranked win pays, a 2:1-ratio win about two-thirds, and a
+  photo finish half — at any score scale, golf scoring and negative scores
+  included, and ratio-equivalent results (2:1 ≡ 10:5) always pay the same.
+  Rankings support shared places: tap a player placed earlier in the order to
+  tie them with the one before (tapping the last-placed player undoes it).
 - **The leaderboard ranks points per game**, not totals, computed with two
   "ghost games" added to everyone's count. Skipping a night doesn't sink you,
   and a single lucky win can't top the board for the whole week.

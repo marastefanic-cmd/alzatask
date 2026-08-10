@@ -434,9 +434,9 @@ const WEIGHT_LABELS = { 1: 'Light', 2: 'Standard', 3: 'Heavy' };
    "Winner" entries) count as finished behind everyone who placed.
    Every mode has the same maximum: a beaten opponent is worth at most 1.
    Ranked, quick-winner, and team results pay the full 1; in Scores games the
-   margin REFINES it downward — a clear win still pays 1, a squeaker as little
-   as 0.5 — so logging scores never out-earns logging a ranking, it only makes
-   the result more exact. The total is damped by √(field−1): big games pay
+   margin REFINES it downward — a shutout pays the full 1, a 2:1-ratio win
+   about two-thirds, a photo finish half — so logging scores never out-earns
+   logging a ranking, it only makes the result more exact. The total is damped by √(field−1): big games pay
    more than duels, but sublinearly — a 9-player win is worth ~3 duels, not 8. */
 function pointsFor(result, match){
   if(result.rank == null) return 0;
@@ -973,10 +973,11 @@ function openLogSheet(editId){
       teamOf: {}, teamOrder: []
     };
     if(editing.mode === 'ranking'){
-      const sorted = [...editing.results].sort((a,b) => a.rank - b.rank);
+      // null ranks (foreign imports) sort last and never form ties
+      const sorted = [...editing.results].sort((a,b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
       sorted.forEach((r, i) => {
         draft.order.push(r.playerId);
-        if(i > 0 && r.rank === sorted[i-1].rank) draft.ties.push(r.playerId);
+        if(i > 0 && r.rank != null && r.rank === sorted[i-1].rank) draft.ties.push(r.playerId);
       });
     }
     if(editing.mode === 'teams'){
@@ -1100,6 +1101,20 @@ function renderWeightSeg(){
   $$('#fWeight button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.weight) === draft.weight)));
 }
 
+/* Remove a player from the ranking order without corrupting tie groups: a
+   successor tied to the removed player only keeps their flag when the removed
+   player was itself tied (the group survives); a new first player is never tied. */
+function removeFromOrder(id){
+  const i = draft.order.indexOf(id);
+  if(i >= 0){
+    const next = draft.order[i + 1];
+    if(next && !draft.ties.includes(id)) draft.ties = draft.ties.filter(x => x !== next);
+  }
+  draft.order = draft.order.filter(x => x !== id);
+  draft.ties = draft.ties.filter(x => x !== id);
+  if(draft.order.length) draft.ties = draft.ties.filter(x => x !== draft.order[0]);
+}
+
 /* Competition ranks from the tap order: a player tied with the one before
    inherits that player's rank; the next untied player takes their position. */
 function rankingRanks(){
@@ -1123,8 +1138,7 @@ function renderWho(){
     if(draft.participants.includes(id)){
       draft.participants = draft.participants.filter(x => x !== id);
       draft.winners = draft.winners.filter(x => x !== id);
-      draft.order = draft.order.filter(x => x !== id);
-      draft.ties = draft.ties.filter(x => x !== id);
+      removeFromOrder(id);
       delete draft.scores[id];
       delete draft.teamOf[id];
     } else {
@@ -1162,7 +1176,7 @@ function renderModeArea(){
 
   } else if(draft.mode === 'ranking'){
     const ranks = rankingRanks();
-    host.innerHTML = '<label style="display:block" class="hint">Tap players in finishing order. Tap a placed player again to share a place with the one before; a third tap removes them.</label>' +
+    host.innerHTML = '<label style="display:block" class="hint">Tap players in finishing order — tap the last-placed again to undo. To share a place, tap a player placed earlier: they tie with the one before (tap again to unshare).</label>' +
       '<div class="chips" style="margin-top:8px">' + ps.map(p => {
         const idx = draft.order.indexOf(p.id);
         const tied = draft.ties.includes(p.id) && idx > 0;
@@ -1175,12 +1189,13 @@ function renderModeArea(){
       const id = c.dataset.ord;
       const idx = draft.order.indexOf(id);
       if(idx < 0){
-        draft.order.push(id);
-      } else if(idx > 0 && !draft.ties.includes(id)){
-        draft.ties.push(id);           // second tap: share a place with the previous player
+        draft.order.push(id);                                   // place next
+      } else if(idx === draft.order.length - 1 || idx === 0){
+        removeFromOrder(id);                                    // undo latest / clear first
+      } else if(draft.ties.includes(id)){
+        draft.ties = draft.ties.filter(x => x !== id);          // unshare
       } else {
-        draft.order = draft.order.filter(x => x !== id);
-        draft.ties = draft.ties.filter(x => x !== id);
+        draft.ties.push(id);                                    // share a place with the one before
       }
       renderModeArea();
     }));
@@ -1389,7 +1404,7 @@ function openSettingsSheet(){
       '<p class="hint" style="font-size:13.5px">Beat a player, earn the game’s weight in points: Light ×1, Standard ×2, Heavy ×3 — ' +
       'damped by the crowd (÷ √(players − 1)), so a 9-player win is worth about three duels, not eight. ' +
       'Every way of logging pays the same maximum. In score games the margin refines the result downward: ' +
-      'a clear win pays full — the same as a ranked win — while a 2:1 squeaker pays as little as half. ' +
+      'a shutout pays full — the same as a ranked win — a 2:1-ratio win about two-thirds, a photo finish half. ' +
       'The board ranks <b>points per game</b> (with two “ghost games” added), so skipping a night doesn’t sink you — ' +
       'and one lucky win can’t clinch the week. ' +
       'Ties share a place and count as level, not beaten — in rankings, tap a placed player again to share a place. ' +
