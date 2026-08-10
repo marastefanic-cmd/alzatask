@@ -440,18 +440,32 @@ function pointsFor(result, match){
     const behind = x.rank == null ? true : x.rank > result.rank;
     if(behind) sum += 1 + marginBonus(result, x, match);
   }
-  return sum * (match.weight || 2);
+  // quantize at the source so history "+pts" lines sum exactly to the standings total
+  return Math.round(sum * (match.weight || 2) * 10) / 10;
 }
 
-/* Relative margin of one pairwise win, in [0, 0.5]. diff/(|a|+|b|) is
-   scale-free — it reads 2:0 as a shutout, 2:1 as narrow, 120:80 as solid,
-   350:340 as a nail-biter — and is safe for golf scoring and negatives. */
+/* Relative margin of one pairwise win, in [0, 0.5]. The gap is scaled by the
+   LARGER of (|a|+|b|) and the match's widest score gap: the first anchor reads
+   2:0 as a shutout and 2:1 as narrow; the second stops a small gap that merely
+   crosses zero (1 vs -1 in a wider field) from saturating at the maximum.
+   Scale-free, and safe for golf scoring and negatives. */
 function marginBonus(winner, loser, match){
   if(match.mode !== 'scores' || typeof winner.score !== 'number' || typeof loser.score !== 'number') return 0;
   const diff = match.lowWins ? loser.score - winner.score : winner.score - loser.score;
-  const scale = Math.abs(winner.score) + Math.abs(loser.score);
+  const scale = Math.max(Math.abs(winner.score) + Math.abs(loser.score), matchSpread(match));
   if(!(diff > 0) || !(scale > 0)) return 0;
   return 0.5 * Math.min(diff / scale, 1);
+}
+
+function matchSpread(match){
+  let mx = -Infinity, mn = Infinity;
+  for(const r of match.results){
+    if(typeof r.score === 'number'){
+      if(r.score > mx) mx = r.score;
+      if(r.score < mn) mn = r.score;
+    }
+  }
+  return mx > mn ? mx - mn : 0;
 }
 
 /* The leaderboard metric: points per game, averaged as if everyone had played
