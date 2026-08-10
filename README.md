@@ -22,7 +22,10 @@ that phone between openings.
   a weight — Light ×1, Standard ×2, Heavy ×3 (remembered per game name) — and a
   match pays each player (players they finished ahead of) × weight. Winning a
   heavy 9-player game pays 24; edging a light duel pays 1. Ties count as level,
-  not beaten; quick Winner entries pay winners only.
+  not beaten; quick Winner entries pay winners only. In Scores games the margin
+  matters: each beaten opponent is worth 1 plus up to 0.5 extra by how decisive
+  the gap was — `bonus = ½ · (score gap) / (|yours| + |theirs|)` — so a 2:0
+  shutout outpays a 2:1 squeaker, at any score scale, golf scoring included.
 - **The leaderboard ranks points per game**, not totals, computed with two
   "ghost games" added to everyone's count. Skipping a night doesn't sink you,
   and a single lucky win can't top the board for the whole week.

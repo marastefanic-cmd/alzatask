@@ -429,11 +429,29 @@ const WEIGHT_LABELS = { 1: 'Light', 2: 'Standard', 3: 'Heavy' };
 
 /* Beat a player, earn the game's weight in points: (players you finished ahead
    of) × weight. Ties count as level, not beaten; unranked participants (quick
-   "Winner" entries) count as finished behind everyone who placed. */
+   "Winner" entries) count as finished behind everyone who placed.
+   In Scores games the margin matters too: each beaten opponent is worth
+   1 + up to 0.5 extra, scaled by how decisively you beat them. */
 function pointsFor(result, match){
   if(result.rank == null) return 0;
-  const beaten = match.results.filter(x => x.rank == null ? true : x.rank > result.rank).length;
-  return beaten * (match.weight || 2);
+  let sum = 0;
+  for(const x of match.results){
+    if(x === result) continue;
+    const behind = x.rank == null ? true : x.rank > result.rank;
+    if(behind) sum += 1 + marginBonus(result, x, match);
+  }
+  return sum * (match.weight || 2);
+}
+
+/* Relative margin of one pairwise win, in [0, 0.5]. diff/(|a|+|b|) is
+   scale-free — it reads 2:0 as a shutout, 2:1 as narrow, 120:80 as solid,
+   350:340 as a nail-biter — and is safe for golf scoring and negatives. */
+function marginBonus(winner, loser, match){
+  if(match.mode !== 'scores' || typeof winner.score !== 'number' || typeof loser.score !== 'number') return 0;
+  const diff = match.lowWins ? loser.score - winner.score : winner.score - loser.score;
+  const scale = Math.abs(winner.score) + Math.abs(loser.score);
+  if(!(diff > 0) || !(scale > 0)) return 0;
+  return 0.5 * Math.min(diff / scale, 1);
 }
 
 /* The leaderboard metric: points per game, averaged as if everyone had played
@@ -1319,7 +1337,9 @@ function openSettingsSheet(){
       'Winning a heavy 9-player game pays 24; edging a light duel pays 1. The board ranks <b>points per game</b> ' +
       '(with two “ghost games” added), so skipping a night doesn’t sink you — and one lucky win can’t clinch the week. ' +
       'Ties count as level, not beaten; quick “Winner” entries pay winners only. ' +
-      'In team games your team’s finish is yours: you beat everyone on teams behind you, and teammates count as level.</p></div>' +
+      'In team games your team’s finish is yours: you beat everyone on teams behind you, and teammates count as level. ' +
+      'In score games, margins matter: each player you beat is worth up to +50% extra the more decisively you beat them — ' +
+      'a 2:0 shutout pays the full bonus, a 2:1 squeaker barely any.</p></div>' +
 
     '<div class="field"><label>Put it on your phone</label>' +
       '<p class="hint">Open this page in Safari (iPhone) or Chrome (Android), then Share → <b>Add to Home Screen</b>. ' +
