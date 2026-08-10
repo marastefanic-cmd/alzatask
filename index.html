@@ -308,7 +308,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
-const APP_VERSION = '1.6.1 · fairer big games';
+const APP_VERSION = '1.7 · shared places, exact margins';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -432,17 +432,20 @@ const WEIGHT_LABELS = { 1: 'Light', 2: 'Standard', 3: 'Heavy' };
 /* Beat a player, earn the game's weight in points: (players you finished ahead
    of) × weight. Ties count as level, not beaten; unranked participants (quick
    "Winner" entries) count as finished behind everyone who placed.
-   In Scores games the margin matters too: each beaten opponent is worth
-   1 + up to 0.5 extra, scaled by how decisively you beat them.
-   The total is damped by √(field−1): big games pay more than duels, but
-   sublinearly — a 9-player win is worth ~3 duels, not 8. */
+   Every mode has the same maximum: a beaten opponent is worth at most 1.
+   Ranked, quick-winner, and team results pay the full 1; in Scores games the
+   margin REFINES it downward — a clear win still pays 1, a squeaker as little
+   as 0.5 — so logging scores never out-earns logging a ranking, it only makes
+   the result more exact. The total is damped by √(field−1): big games pay
+   more than duels, but sublinearly — a 9-player win is worth ~3 duels, not 8. */
 function pointsFor(result, match){
   if(result.rank == null) return 0;
   let sum = 0;
   for(const x of match.results){
     if(x === result) continue;
     const behind = x.rank == null ? true : x.rank > result.rank;
-    if(behind) sum += 1 + marginBonus(result, x, match);
+    if(!behind) continue;
+    sum += match.mode === 'scores' ? 0.5 + marginBonus(result, x, match) : 1;
   }
   const damp = Math.sqrt(Math.max(match.results.length - 1, 1));
   // quantize at the source so history "+pts" lines sum exactly to the standings total
@@ -965,10 +968,17 @@ function openLogSheet(editId){
       game: editing.game, date: editing.date, mode: editing.mode, lowWins: editing.lowWins,
       participants: editing.results.map(r => r.playerId),
       winners: editing.mode === 'winner' ? editing.results.filter(r => r.rank === 1).map(r => r.playerId) : [],
-      order: editing.mode === 'ranking' ? [...editing.results].sort((a,b) => a.rank - b.rank).map(r => r.playerId) : [],
+      order: [], ties: [],
       scores: editing.mode === 'scores' ? Object.fromEntries(editing.results.map(r => [r.playerId, r.score])) : {},
       teamOf: {}, teamOrder: []
     };
+    if(editing.mode === 'ranking'){
+      const sorted = [...editing.results].sort((a,b) => a.rank - b.rank);
+      sorted.forEach((r, i) => {
+        draft.order.push(r.playerId);
+        if(i > 0 && r.rank === sorted[i-1].rank) draft.ties.push(r.playerId);
+      });
+    }
     if(editing.mode === 'teams'){
       // teams are the rank groups: members share their team's finishing position
       const byRank = new Map();
@@ -987,7 +997,7 @@ function openLogSheet(editId){
       id: null, seq: null, lowWinsTouched: false, weightTouched: false, weight: 2,
       game: '', date: todayStr(), mode: 'winner', lowWins: false,
       participants: state.players.map(p => p.id),
-      winners: [], order: [], scores: {}, teamOf: {}, teamOrder: []
+      winners: [], order: [], ties: [], scores: {}, teamOf: {}, teamOrder: []
     };
   }
 
@@ -1032,7 +1042,7 @@ function openLogSheet(editId){
   // A new entry counts as dirty once anything meaningful is typed; an edit
   // counts as dirty once it differs from the match it was opened with.
   const snap = () => JSON.stringify([draft.game.trim(), draft.date, draft.mode, draft.lowWins, draft.weight,
-    [...draft.participants].sort(), [...draft.winners].sort(), draft.order,
+    [...draft.participants].sort(), [...draft.winners].sort(), draft.order, [...draft.ties].sort(),
     Object.entries(draft.scores).filter(([,v]) => String(v ?? '').trim() !== '').sort(),
     Object.entries(draft.teamOf).sort(), draft.teamOrder]);
   if(editing){
@@ -1090,6 +1100,18 @@ function renderWeightSeg(){
   $$('#fWeight button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.weight) === draft.weight)));
 }
 
+/* Competition ranks from the tap order: a player tied with the one before
+   inherits that player's rank; the next untied player takes their position. */
+function rankingRanks(){
+  const m = new Map();
+  let rank = 0;
+  draft.order.forEach((pid, i) => {
+    if(i === 0 || !draft.ties.includes(pid)) rank = i + 1;
+    m.set(pid, rank);
+  });
+  return m;
+}
+
 function renderWho(){
   $('#fWho').innerHTML = state.players.map(p => {
     const on = draft.participants.includes(p.id);
@@ -1102,6 +1124,7 @@ function renderWho(){
       draft.participants = draft.participants.filter(x => x !== id);
       draft.winners = draft.winners.filter(x => x !== id);
       draft.order = draft.order.filter(x => x !== id);
+      draft.ties = draft.ties.filter(x => x !== id);
       delete draft.scores[id];
       delete draft.teamOf[id];
     } else {
@@ -1138,21 +1161,31 @@ function renderModeArea(){
     }));
 
   } else if(draft.mode === 'ranking'){
-    host.innerHTML = '<label style="display:block" class="hint">Tap players in finishing order — first tap is 1st place. Tap again to remove.</label>' +
+    const ranks = rankingRanks();
+    host.innerHTML = '<label style="display:block" class="hint">Tap players in finishing order. Tap a placed player again to share a place with the one before; a third tap removes them.</label>' +
       '<div class="chips" style="margin-top:8px">' + ps.map(p => {
         const idx = draft.order.indexOf(p.id);
+        const tied = draft.ties.includes(p.id) && idx > 0;
         return '<button class="chip" style="--pc:' + slotVar(p) + '" data-ord="' + esc(p.id) + '" aria-pressed="' + (idx >= 0) + '">' +
           '<span class="mdot"></span>' + esc(p.name) +
-          (idx >= 0 ? '<span class="place-badge">' + (idx + 1) + '</span>' : '') + '</button>';
+          (idx >= 0 ? '<span class="place-badge">' + (tied ? '=' : '') + ranks.get(p.id) + '</span>' : '') + '</button>';
       }).join('') + '</div>' +
       (draft.order.length ? '<p style="margin:10px 0 0"><button class="link-btn" id="ordClear">Clear order</button></p>' : '');
     $$('#fModeArea [data-ord]').forEach(c => c.addEventListener('click', () => {
       const id = c.dataset.ord;
-      draft.order = draft.order.includes(id) ? draft.order.filter(x => x !== id) : [...draft.order, id];
+      const idx = draft.order.indexOf(id);
+      if(idx < 0){
+        draft.order.push(id);
+      } else if(idx > 0 && !draft.ties.includes(id)){
+        draft.ties.push(id);           // second tap: share a place with the previous player
+      } else {
+        draft.order = draft.order.filter(x => x !== id);
+        draft.ties = draft.ties.filter(x => x !== id);
+      }
       renderModeArea();
     }));
     const oc = $('#ordClear');
-    if(oc) oc.addEventListener('click', () => { draft.order = []; renderModeArea(); });
+    if(oc) oc.addEventListener('click', () => { draft.order = []; draft.ties = []; renderModeArea(); });
 
   } else if(draft.mode === 'teams'){
     const maxTeam = Math.min(4, ps.length);
@@ -1265,7 +1298,8 @@ function saveMatch(){
     results = ps.map(p => ({ playerId: p.id, score: null, rank: draft.winners.includes(p.id) ? 1 : null }));
   } else if(draft.mode === 'ranking'){
     if(draft.order.length !== ps.length) return fail('Rank everyone — ' + (ps.length - draft.order.length) + ' still missing.');
-    results = draft.order.map((pid, i) => ({ playerId: pid, score: null, rank: i + 1 }));
+    const ranks = rankingRanks();
+    results = draft.order.map(pid => ({ playerId: pid, score: null, rank: ranks.get(pid) }));
   } else if(draft.mode === 'teams'){
     for(const p of ps) if(!draft.teamOf[p.id]) draft.teamOf[p.id] = 1;
     const teamsInUse = [...new Set(ps.map(p => draft.teamOf[p.id]))];
@@ -1354,12 +1388,12 @@ function openSettingsSheet(){
     '<div class="field"><label>How scoring works</label>' +
       '<p class="hint" style="font-size:13.5px">Beat a player, earn the game’s weight in points: Light ×1, Standard ×2, Heavy ×3 — ' +
       'damped by the crowd (÷ √(players − 1)), so a 9-player win is worth about three duels, not eight. ' +
+      'Every way of logging pays the same maximum. In score games the margin refines the result downward: ' +
+      'a clear win pays full — the same as a ranked win — while a 2:1 squeaker pays as little as half. ' +
       'The board ranks <b>points per game</b> (with two “ghost games” added), so skipping a night doesn’t sink you — ' +
       'and one lucky win can’t clinch the week. ' +
-      'Ties count as level, not beaten; quick “Winner” entries pay winners only. ' +
-      'In team games your team’s finish is yours: you beat everyone on teams behind you, and teammates count as level. ' +
-      'In score games, margins matter: each player you beat is worth up to +50% extra the more decisively you beat them — ' +
-      'a 2:0 shutout pays the full bonus, a 2:1 squeaker barely any.</p></div>' +
+      'Ties share a place and count as level, not beaten — in rankings, tap a placed player again to share a place. ' +
+      'Quick “Winner” entries pay winners only; in team games you beat everyone on teams behind you.</p></div>' +
 
     '<div class="field"><label>Put it on your phone</label>' +
       (location.href.startsWith(INSTALL_URL)

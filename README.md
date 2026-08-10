@@ -23,12 +23,14 @@ that phone between openings.
   match pays each player (players they finished ahead of) × weight, damped by
   √(field − 1) so field size matters sublinearly: a 9-player win is worth about
   three duels, not eight, and placements in between stay proportional. Ties count as level,
-  not beaten; quick Winner entries pay winners only. In Scores games the margin
-  matters: each beaten opponent is worth 1 plus up to 0.5 extra by how decisive
-  the gap was — `bonus = ½ · gap / max(|yours| + |theirs|, match's widest gap)`
-  — so a 2:0 shutout outpays a 2:1 squeaker at any score scale, golf scoring
-  and negative scores included, and a small gap that merely crosses zero can't
-  masquerade as a blowout.
+  not beaten; quick Winner entries pay winners only. Every logging mode pays
+  the same maximum — a beaten opponent is worth at most 1. In Scores games the
+  margin refines that value downward: each beaten opponent is worth
+  `½ + ½ · gap / max(|yours| + |theirs|, match's widest gap)`, so a clear win
+  pays exactly what a ranked win pays while a 2:1 squeaker pays as little as
+  half — at any score scale, golf scoring and negative scores included.
+  Rankings support shared places (tap a placed player again to tie them with
+  the player before).
 - **The leaderboard ranks points per game**, not totals, computed with two
   "ghost games" added to everyone's count. Skipping a night doesn't sink you,
   and a single lucky win can't top the board for the whole week.
