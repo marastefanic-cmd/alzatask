@@ -308,7 +308,10 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
-const APP_VERSION = '1.7 · shared places, exact margins';
+const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
+const SNAP_DAY_KEY = 'gameweek-v1-snapday';
+const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
+const APP_VERSION = '1.7.1 · daily snapshot';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -342,8 +345,16 @@ function load(){
   if(raw){
     try {
       const parsed = JSON.parse(raw);
-      state = sanitizeState(parsed) || freshState();
-    } catch(e){ state = freshState(); }
+      const next = sanitizeState(parsed);
+      if(next){ state = next; }
+      else {
+        state = freshState();
+        try { localStorage.setItem(BROKEN_KEY, raw); } catch(e){}
+      }
+    } catch(e){
+      state = freshState();
+      try { localStorage.setItem(BROKEN_KEY, raw); } catch(e2){}
+    }
   } else {
     state = freshState();
   }
@@ -352,11 +363,48 @@ function load(){
 
 function save(){
   if(!storageOk) return;
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  try {
+    // once per day, keep the previous day's final state as a restorable snapshot
+    const prev = localStorage.getItem(STORAGE_KEY);
+    if(prev && localStorage.getItem(SNAP_DAY_KEY) !== todayStr()){
+      let meaningful = false;
+      try {
+        const p = JSON.parse(prev);
+        meaningful = !!((p.players && p.players.length) || (p.matches && p.matches.length));
+      } catch(e){}
+      if(meaningful){
+        localStorage.setItem(SNAP_KEY, prev);
+        localStorage.setItem(SNAP_DAY_KEY, todayStr());
+      }
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
   catch(e){
     storageOk = false;
     toast('Couldn’t save on this device — export a backup from Settings.');
   }
+}
+
+/* A usable board from the previous-day snapshot or preserved broken data, if any. */
+function recoverySnapshot(){
+  for(const key of [SNAP_KEY, BROKEN_KEY]){
+    try {
+      const raw = localStorage.getItem(key);
+      if(!raw) continue;
+      const st = sanitizeState(JSON.parse(raw));
+      if(st && (st.players.length || st.matches.length)) return st;
+    } catch(e){}
+  }
+  return null;
+}
+
+function restoreSnapshot(){
+  const st = recoverySnapshot();
+  if(!st){ toast('No snapshot to restore.'); return; }
+  state = st;
+  seqCounter = state.matches.reduce((m,x) => Math.max(m, x.seq || 0), 0);
+  save(); renderAll();
+  toast('Restored — ' + state.players.length + ' players, ' + state.matches.length + ' games.');
 }
 
 /* Validate an unknown parsed object into app state; returns null if unusable. */
@@ -602,9 +650,12 @@ function renderStandings(){
         '<p>Add your crew first — then log every game you play and watch the race unfold.</p>' +
         '<button class="btn" id="goPlayers">Add players</button>' +
         '<p style="margin:14px 0 0"><button class="link-btn" id="goImport">Already have a backup? Import it</button></p>' +
+        (recoverySnapshot() ? '<p style="margin:10px 0 0"><button class="link-btn" id="goRestore">Restore yesterday’s scoreboard</button></p>' : '') +
       '</div>';
     $('#goPlayers').addEventListener('click', () => switchTab('players'));
     $('#goImport').addEventListener('click', openSettingsSheet);
+    const gr = $('#goRestore');
+    if(gr) gr.addEventListener('click', restoreSnapshot);
     return;
   }
 
@@ -1426,7 +1477,8 @@ function openSettingsSheet(){
         '<button class="btn ghost small" id="sImport">Import backup</button>' +
         '<input type="file" id="sFile" accept="application/json,.json" class="sr">' +
       '</div>' +
-      '<p class="hint" style="margin-top:8px">Everything lives on this phone. One of you is the scorekeeper — export a backup now and then, or to hand the scoreboard to another phone.</p></div>' +
+      '<p class="hint" style="margin-top:8px">Everything lives on this phone. One of you is the scorekeeper — export a backup now and then, or to hand the scoreboard to another phone. ' +
+      'The app also keeps an automatic snapshot from the previous day, offered on the first screen if the board ever comes up empty.</p></div>' +
 
     '<div class="field"><label>Danger zone</label>' +
       '<button class="btn ghost small" id="sReset">Start over…</button></div>' +
