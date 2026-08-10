@@ -308,7 +308,8 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 ===================================================================== */
 
 const STORAGE_KEY = 'gameweek-v1';
-const APP_VERSION = '1.6 · fairer big games';
+const APP_VERSION = '1.6.1 · fairer big games';
+const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
 
@@ -1361,9 +1362,14 @@ function openSettingsSheet(){
       'a 2:0 shutout pays the full bonus, a 2:1 squeaker barely any.</p></div>' +
 
     '<div class="field"><label>Put it on your phone</label>' +
-      '<p class="hint">Open this page in Safari (iPhone) or Chrome (Android), then Share → <b>Add to Home Screen</b>. ' +
-      'It becomes a full-screen app that works offline. Heads-up: the installed app keeps its <b>own</b> scoreboard, ' +
-      'separate from the browser tab — install before you start logging, or move your games over with Export → Import.</p></div>' +
+      (location.href.startsWith(INSTALL_URL)
+        ? '<p class="hint">You’re on the installable site. In Safari (iPhone) or Chrome (Android), tap Share → <b>Add to Home Screen</b>. ' +
+          'It becomes a full-screen app that works offline.</p>'
+        : '<p class="hint">This copy is a preview and can’t be added to a home screen. The installable app lives at<br>' +
+          '<a class="link-btn" href="' + INSTALL_URL + '" target="_blank" rel="noopener">' + INSTALL_URL.replace('https://','') + '</a><br>' +
+          'Open that in Safari (long-press to copy if tapping doesn’t work), then Share → <b>Add to Home Screen</b>.</p>') +
+      '<p class="hint" style="margin-top:8px">Heads-up: each copy keeps its <b>own</b> scoreboard — install first, ' +
+      'or move your games over with Export → Import.</p></div>' +
 
     '<div class="field"><label>Your data</label>' +
       '<div style="display:flex; gap:10px; flex-wrap:wrap">' +
