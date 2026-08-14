@@ -598,9 +598,10 @@ function standings(){
     }
   }
   rows.forEach(r => { r.rating = forgivingAvg(r.entries); r.pts = Math.round(r.pts * 10) / 10; });
-  rows.sort((a,b) => b.rating - a.rating || b.pts - a.pts || b.wins - a.wins || a.p.name.localeCompare(b.p.name));
-  // competition rank by rating, compared at the same three-decimal precision fmtRating displays
+  // sort and rank at the same three-decimal precision fmtRating displays, so the
+  // pts/wins tiebreakers actually decide order within a displayed tie
   const key = r => Math.round(r.rating * 1000);
+  rows.sort((a,b) => key(b) - key(a) || b.pts - a.pts || b.wins - a.wins || a.p.name.localeCompare(b.p.name));
   rows.forEach((r,i) => { r.rank = (i > 0 && key(rows[i-1]) === key(r)) ? rows[i-1].rank : i + 1; });
   return rows;
 }
@@ -845,7 +846,6 @@ function niceTicks(max){
   const pow = Math.pow(10, Math.floor(Math.log10(raw)));
   let step = pow;
   for(const m of [1, 2, 5, 10]){ if(m * pow >= raw){ step = m * pow; break; } }
-  if(step < 1) step = 1;   // points are whole numbers — no fractional gridlines
   const top = Math.ceil(max / step) * step;
   const out = [];
   for(let v = 0; v <= top + 1e-9; v += step) out.push(Math.round(v * 100) / 100);
