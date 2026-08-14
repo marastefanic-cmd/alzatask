@@ -95,8 +95,9 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .standing .who .sub{font-size:12.5px; color:var(--muted)}
 .standing .bar-track{grid-column:3 / 5; margin-top:6px; height:18px; position:relative}
 .standing .bar{height:18px; border-radius:0 4px 4px 0; background:var(--pc); min-width:2px}
-/* the 9th (gray) player's bar is striped so its identity never rides on hue alone */
-.standing.s9 .bar{background:repeating-linear-gradient(45deg, var(--pc) 0 5px, color-mix(in srgb, var(--pc) 45%, var(--card)) 5px 9px)}
+/* patterned players: bars carry the pattern so identity never rides on hue alone */
+.standing.pat-dash .bar{background:repeating-linear-gradient(45deg, var(--pc) 0 5px, color-mix(in srgb, var(--pc) 45%, var(--card)) 5px 9px)}
+.standing.pat-dot .bar{background:repeating-linear-gradient(90deg, var(--pc) 0 4px, color-mix(in srgb, var(--pc) 35%, var(--card)) 4px 9px)}
 .standing .pts{font-size:21px; font-weight:650; text-align:right}
 .standing.lead .pts{font-size:24px}
 .standing .pts small{display:block; font-size:11px; font-weight:400; color:var(--muted); margin-top:-2px}
@@ -106,6 +107,16 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .mavatar svg.meeple{width:34px; height:34px; color:var(--pc); display:block}
 .mavatar .crown{position:absolute; top:-9px; left:50%; transform:translateX(-50%) rotate(-8deg); width:18px; height:13px}
 .mdot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--pc); flex:none}
+
+/* ---------- player look pickers ---------- */
+.swatches{display:flex; flex-wrap:wrap; gap:9px}
+.swatch{width:36px; height:36px; border-radius:50%; background:var(--pc); border:2px solid var(--card);
+  box-shadow:0 0 0 1.5px var(--grid)}
+.swatch[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--ink)}
+.shape-btn{width:46px; height:46px; border-radius:12px; border:1.5px solid var(--grid);
+  display:grid; place-items:center; color:var(--pc)}
+.shape-btn svg{width:28px; height:28px; color:inherit}
+.shape-btn[aria-pressed="true"]{border-color:var(--ink); background:var(--wash)}
 
 /* ---------- race chart ---------- */
 .race-wrap{position:relative; touch-action:pan-y}
@@ -260,6 +271,25 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
     <symbol id="i-meeple" viewBox="0 0 100 100">
       <path fill="currentColor" d="M50 8c8 0 14 6 14 13 0 4-2 8-5 10 3 1 6 3 8 6 3 4 9 6 15 8 6 2 10 5 10 10 0 4-3 7-8 7-7 0-13-2-18-5-1 6 0 11 3 17 3 6 6 11 6 15H61c-3 0-4-2-5-5l-4-12c-1-3-3-3-4 0l-4 12c-1 3-2 5-5 5H25c0-4 3-9 6-15 3-6 4-11 3-17-5 3-11 5-18 5-5 0-8-3-8-7 0-5 4-8 10-10 6-2 12-4 15-8 2-3 5-5 8-6-3-2-5-6-5-10 0-7 6-13 14-13z"/>
     </symbol>
+    <!-- selectable piece shapes; ids are i-sh-<key>, paths mirrored in SHAPES for the canvas -->
+    <symbol id="i-sh-meeple" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 8c8 0 14 6 14 13 0 4-2 8-5 10 3 1 6 3 8 6 3 4 9 6 15 8 6 2 10 5 10 10 0 4-3 7-8 7-7 0-13-2-18-5-1 6 0 11 3 17 3 6 6 11 6 15H61c-3 0-4-2-5-5l-4-12c-1-3-3-3-4 0l-4 12c-1 3-2 5-5 5H25c0-4 3-9 6-15 3-6 4-11 3-17-5 3-11 5-18 5-5 0-8-3-8-7 0-5 4-8 10-10 6-2 12-4 15-8 2-3 5-5 8-6-3-2-5-6-5-10 0-7 6-13 14-13z"/>
+    </symbol>
+    <symbol id="i-sh-pawn" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 6c11 0 19 8 19 19 0 7-4 13-9 16 2 7 6 12 10 16 3 3 1 8-3 8H33c-4 0-6-5-3-8 4-4 8-9 10-16-5-3-9-9-9-16 0-11 8-19 19-19zM31 70h38c7 0 12 4 12 10v6c0 5-3 8-8 8H27c-5 0-8-3-8-8v-6c0-6 5-10 12-10z"/>
+    </symbol>
+    <symbol id="i-sh-rook" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M25 10h14v12h7V10h8v12h7V10h14v20l-9 9v26l9 12v13H25V77l9-12V39l-9-9V10z"/>
+    </symbol>
+    <symbol id="i-sh-star" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 8 61.5 38.2 93.7 39.8 68.5 60 77 91.2 50 73.5 23 91.2 31.5 60 6.3 39.8 38.5 38.2Z"/>
+    </symbol>
+    <symbol id="i-sh-heart" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 88C28 70 12 55 12 36 12 22 22 12 34 12c7 0 13 4 16 9 3-5 9-9 16-9 12 0 22 10 22 24 0 19-16 34-38 52z"/>
+    </symbol>
+    <symbol id="i-sh-bot" viewBox="0 0 100 100">
+      <path fill="currentColor" fill-rule="evenodd" d="M50 2c4 0 7 3 7 7 0 3-2 5-4 6 2 2 3 4 3 7H44c0-3 1-5 3-7-2-1-4-3-4-6 0-4 3-7 7-7zM22 26h56c8 0 14 6 14 14v36c0 8-6 14-14 14H22c-8 0-14-6-14-14V40c0-8 6-14 14-14zm11 20a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm34 0a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/>
+    </symbol>
     <symbol id="i-crown" viewBox="0 0 48 34">
       <path fill="#eda100" stroke="var(--card)" stroke-width="2" d="M6 30 L4 10 L15 19 L24 4 L33 19 L44 10 L42 30 Z"/>
     </symbol>
@@ -334,10 +364,25 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '2.2 · a better reel';
+const APP_VERSION = '2.3 · pick your piece';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
-const MAX_PLAYERS = 9;
+/* No hard player cap anymore: identity is colour × pattern × shape (162 combos),
+   so it no longer runs out at nine hues. 99 is a sanity bound for imports. */
+const MAX_PLAYERS = 99;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
+const N_COLORS = SLOT_VARS.length;
+/* Piece shapes: SVG symbol is i-sh-<key>; d is the same path for the share canvas. */
+const SHAPES = {
+  meeple: { label: 'Meeple', d: 'M50 8c8 0 14 6 14 13 0 4-2 8-5 10 3 1 6 3 8 6 3 4 9 6 15 8 6 2 10 5 10 10 0 4-3 7-8 7-7 0-13-2-18-5-1 6 0 11 3 17 3 6 6 11 6 15H61c-3 0-4-2-5-5l-4-12c-1-3-3-3-4 0l-4 12c-1 3-2 5-5 5H25c0-4 3-9 6-15 3-6 4-11 3-17-5 3-11 5-18 5-5 0-8-3-8-7 0-5 4-8 10-10 6-2 12-4 15-8 2-3 5-5 8-6-3-2-5-6-5-10 0-7 6-13 14-13z' },
+  pawn:   { label: 'Pawn',   d: 'M50 6c11 0 19 8 19 19 0 7-4 13-9 16 2 7 6 12 10 16 3 3 1 8-3 8H33c-4 0-6-5-3-8 4-4 8-9 10-16-5-3-9-9-9-16 0-11 8-19 19-19zM31 70h38c7 0 12 4 12 10v6c0 5-3 8-8 8H27c-5 0-8-3-8-8v-6c0-6 5-10 12-10z' },
+  rook:   { label: 'Rook',   d: 'M25 10h14v12h7V10h8v12h7V10h14v20l-9 9v26l9 12v13H25V77l9-12V39l-9-9V10z' },
+  star:   { label: 'Star',   d: 'M50 8 61.5 38.2 93.7 39.8 68.5 60 77 91.2 50 73.5 23 91.2 31.5 60 6.3 39.8 38.5 38.2Z' },
+  heart:  { label: 'Heart',  d: 'M50 88C28 70 12 55 12 36 12 22 22 12 34 12c7 0 13 4 16 9 3-5 9-9 16-9 12 0 22 10 22 24 0 19-16 34-38 52z' },
+  bot:    { label: 'Robot',  d: 'M50 2c4 0 7 3 7 7 0 3-2 5-4 6 2 2 3 4 3 7H44c0-3 1-5 3-7-2-1-4-3-4-6 0-4 3-7 7-7zM22 26h56c8 0 14 6 14 14v36c0 8-6 14-14 14H22c-8 0-14-6-14-14V40c0-8 6-14 14-14zm11 20a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm34 0a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', evenodd: true },
+};
+const SHAPE_KEYS = Object.keys(SHAPES);
+const PATTERNS = ['solid', 'dash', 'dot'];
+const PATTERN_LABELS = { solid: 'Solid', dash: 'Dashed', dot: 'Dotted' };
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -455,6 +500,9 @@ function sanitizeState(o){
       if(rawId) idMap.set(rawId, id);
       const player = { id, name: p.name.trim().slice(0,40), slot };
       if(['girl','boy'].includes(p.sex)) player.sex = p.sex;
+      if(Number.isInteger(p.color) && p.color >= 0 && p.color < N_COLORS) player.color = p.color;
+      if(typeof p.shape === 'string' && SHAPES[p.shape]) player.shape = p.shape;
+      if(PATTERNS.includes(p.pattern)) player.pattern = p.pattern;
       s.players.push(player);
     }
   }
@@ -610,7 +658,29 @@ function standings(){
 
 /* ---------- misc helpers ---------- */
 function playerById(id){ return state.players.find(p => p.id === id); }
-function slotVar(p){ return 'var(' + SLOT_VARS[p.slot] + ')'; }
+/* Player look: colour × pattern × shape. Explicit fields win; defaults derive
+   from the slot so every pre-customization board keeps its exact old look
+   (gray — colour 8 — stays dashed/striped unless the player chooses otherwise). */
+function colorIdx(p){ return Number.isInteger(p.color) && p.color >= 0 && p.color < N_COLORS ? p.color : p.slot % N_COLORS; }
+function shapeOf(p){ return SHAPES[p.shape] ? p.shape : 'meeple'; }
+function patternOf(p){ return PATTERNS.includes(p.pattern) ? p.pattern : (colorIdx(p) === 8 ? 'dash' : 'solid'); }
+function lookKey(p){ return colorIdx(p) + '|' + shapeOf(p) + '|' + patternOf(p); }
+function slotVar(p){ return 'var(' + SLOT_VARS[colorIdx(p)] + ')'; }
+function patternClass(p){ const pat = patternOf(p); return pat === 'solid' ? '' : ' pat-' + pat; }
+function lineDash(p){ const pat = patternOf(p); return pat === 'dash' ? '7 5' : pat === 'dot' ? '2 6' : ''; }
+/* First look no current player wears: 9 colours, then new shapes, then patterns.
+   Gray prefers dashed (its solid bar/line reads too much like the other hues). */
+function freeLook(){
+  const used = new Set(state.players.map(lookKey));
+  for(let pi = 0; pi < PATTERNS.length; pi++)
+    for(const shape of SHAPE_KEYS)
+      for(let color = 0; color < N_COLORS; color++){
+        const prefs = color === 8 ? ['dash','solid','dot'] : PATTERNS;
+        const cand = color + '|' + shape + '|' + prefs[pi];
+        if(!used.has(cand)) return { color, shape, pattern: prefs[pi] };
+      }
+  return { color: state.players.length % N_COLORS, shape: 'meeple', pattern: 'solid' };
+}
 function fmtNum(n){ return (Math.round(n * 10) / 10).toLocaleString('en-US'); }
 function fmtRating(n){ return (Math.round(n * 1000) / 1000).toFixed(3); }
 function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20)%10]||s[v]||s[0]); }
@@ -625,7 +695,7 @@ function tripDayOf(iso){
 function meeple(p, opts){
   opts = opts || {};
   return '<span class="mavatar" style="--pc:' + slotVar(p) + '"' + (opts.small ? ' data-small' : '') + '>' +
-    '<svg class="meeple" role="img" aria-label="' + esc(p.name) + '"><use href="#i-meeple"/></svg>' +
+    '<svg class="meeple" role="img" aria-label="' + esc(p.name) + '"><use href="#i-sh-' + shapeOf(p) + '"/></svg>' +
     (opts.crown ? '<svg class="crown" aria-label="Current leader"><use href="#i-crown"/></svg>' : '') +
   '</span>';
 }
@@ -728,7 +798,7 @@ function renderStandings(){
   }
   html += rows.map(r => {
     const isLead = leaders.includes(r.p.id);
-    return '<div class="standing' + (isLead ? ' lead' : '') + (r.p.slot === 8 ? ' s9' : '') + '" style="--pc:' + slotVar(r.p) + '">' +
+    return '<div class="standing' + (isLead ? ' lead' : '') + patternClass(r.p) + '" style="--pc:' + slotVar(r.p) + '">' +
       '<div class="rank">' + r.rank + '</div>' +
       meeple(r.p, {crown: isLead}) +
       '<div class="who"><div class="nm">' + esc(r.p.name) + '</div>' +
@@ -819,7 +889,8 @@ function renderRace(){
   for(const s of series){
     const c = slotVar(s.p);
     const d = s.pts.map((v,i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
-    const dash = s.p.slot === 8 ? ' stroke-dasharray="7 5"' : '';
+    const dashPat = lineDash(s.p);
+    const dash = dashPat ? ' stroke-dasharray="' + dashPat + '"' : '';
     g += '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"' + dash + '/>';
     g += '<circle cx="' + X(N).toFixed(1) + '" cy="' + Y(s.pts[N]).toFixed(1) + '" r="4.5" fill="' + c + '" stroke="var(--card)" stroke-width="2"/>';
   }
@@ -837,7 +908,9 @@ function renderRace(){
     'aria-label="Points per game for each player after each game">' + g + '</svg>';
 
   $('#raceLegend').innerHTML = state.players.map(p =>
-    '<span class="lg" style="--pc:' + slotVar(p) + '"><span class="mdot"></span>' + esc(p.name) + '</span>'
+    '<span class="lg" style="--pc:' + slotVar(p) + '">' +
+    '<svg width="13" height="13" style="color:var(--pc)" aria-hidden="true"><use href="#i-sh-' + shapeOf(p) + '"/></svg>' +
+    esc(p.name) + '</span>'
   ).join('');
 
   raceData = { series, ms, N, W, H, padL, padR, padT, padB, X, Y };
@@ -973,6 +1046,29 @@ function computeHighlights(){
     items.push({ eyebrow: 'Current champion', pid: lead.p.id, crown: true,
       segs: [{ t: lead.p.name }], value: fmtRating(lead.rating), valueSub: 'per game',
       sub: lead.wins + ' wins across ' + lead.played + ' games — the crown is theirs to lose.' });
+  }
+
+  // the board tonight: the complete ranking, with the gaps that matter
+  {
+    const played = rows.filter(r => r.played > 0);
+    if(played.length >= 3 && ms.length >= 3){
+      const key = r => Math.round(r.rating * 1000);
+      const gaps = [];
+      for(let i = 1; i < played.length; i++){
+        const a = played[i-1], b = played[i];
+        if(key(a) > key(b)) gaps.push({ a, b, gap: (key(a) - key(b)) / 1000 });
+      }
+      let sub = '';
+      if(gaps.length){
+        const tight = gaps.reduce((x, y) => y.gap < x.gap ? y : x);
+        const big = gaps.reduce((x, y) => y.gap > x.gap ? y : x);
+        sub = 'Tightest race: ' + tight.b.p.name + ' is ' + fmtRating(tight.gap) + ' behind ' + tight.a.p.name + '.';
+        if(big !== tight) sub += ' Widest gap: ' + big.a.p.name + ' → ' + big.b.p.name + ' (' + fmtRating(big.gap) + ').';
+      }
+      items.push({ eyebrow: 'The board tonight',
+        rows: played.map(r => ({ pid: r.p.id, label: r.rank + '. ' + r.p.name, value: fmtRating(r.rating) })),
+        sub });
+    }
   }
 
   // the crown: lead changes and the longest reign, replayed match by match
@@ -1370,7 +1466,6 @@ function renderHighlights(){
 }
 
 /* ---------- highlights share card (canvas → native share sheet) ---------- */
-const MEEPLE_D = 'M50 8c8 0 14 6 14 13 0 4-2 8-5 10 3 1 6 3 8 6 3 4 9 6 15 8 6 2 10 5 10 10 0 4-3 7-8 7-7 0-13-2-18-5-1 6 0 11 3 17 3 6 6 11 6 15H61c-3 0-4-2-5-5l-4-12c-1-3-3-3-4 0l-4 12c-1 3-2 5-5 5H25c0-4 3-9 6-15 3-6 4-11 3-17-5 3-11 5-18 5-5 0-8-3-8-7 0-5 4-8 10-10 6-2 12-4 15-8 2-3 5-5 8-6-3-2-5-6-5-10 0-7 6-13 14-13z';
 const CROWN_D = 'M6 30 L4 10 L15 19 L24 4 L33 19 L44 10 L42 30 Z';
 const SHARE_SLOT_COLORS = ['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767','#999488'];
 
@@ -1378,7 +1473,8 @@ function buildHighlightsCanvas(){
   const data = computeHighlights();
   if(!data) return null;
   const pById = new Map(state.players.map(p => [p.id, p]));
-  const colorOf = pid => SHARE_SLOT_COLORS[(pById.get(pid) || { slot: 8 }).slot] || '#999488';
+  const colorOf = pid => SHARE_SLOT_COLORS[colorIdx(pById.get(pid) || { slot: 8 })] || '#999488';
+  const pieceOf = pid => { const p = pById.get(pid); return p ? shapeOf(p) : 'meeple'; };
 
   const W = 1080, M = 44, P = 40, GAP = 22;
   const INK = '#ffffff', INK2 = '#c3c2b7', MUTED = '#898781', CARD = '#191918', BG = '#0d0d0d', LINE = '#2c2c2a';
@@ -1427,12 +1523,14 @@ function buildHighlightsCanvas(){
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   };
-  const drawMeeple = (x, y, size, color, crown) => {
+  const drawMeeple = (x, y, size, color, crown, shapeKey) => {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(size / 100, size / 100);
     ctx.fillStyle = color;
-    ctx.fill(new Path2D(MEEPLE_D));
+    const sh = SHAPES[shapeKey] || SHAPES.meeple;
+    const path = new Path2D(sh.d);
+    if(sh.evenodd) ctx.fill(path, 'evenodd'); else ctx.fill(path);
     if(crown){
       ctx.translate(26, -16);
       ctx.fillStyle = '#eda100';
@@ -1494,7 +1592,7 @@ function buildHighlightsCanvas(){
       const midY = cy + 48;
       let lx = x0;
       if(it.pid){
-        drawMeeple(lx, midY - 40, 80, colorOf(it.pid), !!it.crown);
+        drawMeeple(lx, midY - 40, 80, colorOf(it.pid), !!it.crown, pieceOf(it.pid));
         lx += 100;
       }
       // right-aligned value block first, so the title knows its room
@@ -1575,7 +1673,7 @@ function renderPlayers(){
   const rows = standings();
   const byId = new Map(rows.map(r => [r.p.id, r]));
   let html = '<div class="card"><div class="card-h"><h2>Players</h2></div>' +
-    '<p class="card-sub">Everyone gets a color for the whole week · up to ' + MAX_PLAYERS + ' players</p>';
+    '<p class="card-sub">Everyone gets their own look for the week — tap Edit to pick a colour, pattern, and piece</p>';
   if(state.players.length === 0){
     html += '<p class="hint" style="margin:4px 0 10px">No players yet. Add at least two to start logging games.</p>';
   }
@@ -1592,8 +1690,6 @@ function renderPlayers(){
     html += '<div class="add-row"><input class="tin" id="npName" placeholder="Player name" maxlength="40" ' +
       'autocomplete="off" enterkeyhint="done" aria-label="New player name">' +
       '<button class="btn" id="npAdd">Add</button></div>';
-  } else {
-    html += '<p class="hint" style="margin-top:10px">All ' + MAX_PLAYERS + ' color slots are taken.</p>';
   }
   html += '</div>';
   host.innerHTML = html;
@@ -1609,7 +1705,8 @@ function renderPlayers(){
     let slot = 0;
     const used = new Set(state.players.map(p => p.slot));
     while(used.has(slot)) slot++;
-    state.players.push({ id: uid(), name: name.slice(0,40), slot });
+    const look = freeLook();
+    state.players.push({ id: uid(), name: name.slice(0,40), slot, ...look });
     save(); renderAll();
     const again = $('#npName');
     if(again) again.focus();
@@ -2084,11 +2181,28 @@ function openPlayerSheet(pid){
   const p = playerById(pid);
   if(!p) return;
   const hasResults = state.matches.some(m => m.results.some(r => r.playerId === pid));
+  const look = { color: colorIdx(p), shape: shapeOf(p), pattern: patternOf(p) };
   openSheet(
-    '<div class="sh-head">' + meeple(p) + '<h2>' + esc(p.name) + '</h2>' +
+    '<div class="sh-head"><span id="pPreview">' + meeple(p) + '</span><h2>' + esc(p.name) + '</h2>' +
       '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
     '<div class="field"><label for="pName">Name</label>' +
       '<input class="tin" id="pName" maxlength="40" value="' + esc(p.name) + '"></div>' +
+    '<div class="field"><label>Colour</label><div class="swatches" id="pColor" role="group" aria-label="Colour">' +
+      SLOT_VARS.map((v, i) =>
+        '<button class="swatch" style="--pc:var(' + v + ')" data-color="' + i + '" ' +
+        'aria-pressed="' + (i === look.color) + '" aria-label="Colour ' + (i + 1) + '"></button>').join('') +
+      '</div></div>' +
+    '<div class="field"><label>Piece</label><div class="swatches" id="pShape" role="group" aria-label="Piece shape">' +
+      SHAPE_KEYS.map(k =>
+        '<button class="shape-btn" style="--pc:var(' + SLOT_VARS[look.color] + ')" data-shape="' + k + '" ' +
+        'aria-pressed="' + (k === look.shape) + '" aria-label="' + SHAPES[k].label + '">' +
+        '<svg aria-hidden="true"><use href="#i-sh-' + k + '"/></svg></button>').join('') +
+      '</div></div>' +
+    '<div class="field"><label>Chart pattern</label>' +
+      '<div class="seg" id="pPattern" role="group" aria-label="Chart pattern">' +
+      PATTERNS.map(k => '<button data-pattern="' + k + '" aria-pressed="' + (k === look.pattern) + '">' + PATTERN_LABELS[k] + '</button>').join('') +
+      '</div>' +
+      '<p class="hint" style="margin-top:6px">How their line and bar are drawn — patterns keep look-alike colours tellable apart.</p></div>' +
     '<div class="field"><label>Counts as</label>' +
       '<div class="seg" id="pSex" role="group" aria-label="Player group">' +
         '<button data-sex="" aria-pressed="' + (!p.sex) + '">Neither</button>' +
@@ -2105,6 +2219,18 @@ function openPlayerSheet(pid){
     '</div>'
   );
   $('#shClose').addEventListener('click', closeSheet);
+  const paintLook = () => {
+    $('#pPreview').innerHTML = meeple({ ...p, color: look.color, shape: look.shape, pattern: look.pattern });
+    $$('#pColor .swatch').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.color) === look.color)));
+    $$('#pShape .shape-btn').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.shape === look.shape));
+      b.style.setProperty('--pc', 'var(' + SLOT_VARS[look.color] + ')');
+    });
+    $$('#pPattern button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pattern === look.pattern)));
+  };
+  $$('#pColor .swatch').forEach(b => b.addEventListener('click', () => { look.color = Number(b.dataset.color); paintLook(); }));
+  $$('#pShape .shape-btn').forEach(b => b.addEventListener('click', () => { look.shape = b.dataset.shape; paintLook(); }));
+  $$('#pPattern button').forEach(b => b.addEventListener('click', () => { look.pattern = b.dataset.pattern; paintLook(); }));
   let sexChoice = p.sex || '';
   $$('#pSex button').forEach(b => b.addEventListener('click', () => {
     sexChoice = b.dataset.sex;
@@ -2116,7 +2242,11 @@ function openPlayerSheet(pid){
     if(state.players.some(x => x.id !== pid && x.name.toLowerCase() === name.toLowerCase())){
       toast('There’s already a player called ' + name + '.'); return;
     }
+    const key = look.color + '|' + look.shape + '|' + look.pattern;
+    const clash = state.players.find(x => x.id !== pid && lookKey(x) === key);
+    if(clash){ toast(clash.name + ' already wears that exact look — change the colour, piece, or pattern.'); return; }
     p.name = name.slice(0,40);
+    p.color = look.color; p.shape = look.shape; p.pattern = look.pattern;
     if(sexChoice) p.sex = sexChoice; else delete p.sex;
     save(); closeSheet(); renderAll();
   });

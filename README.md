@@ -10,9 +10,12 @@ that phone between openings.
 
 ## How it works
 
-- **Players** — up to 9, each with a fixed color and meeple for the whole week.
-  The ninth slot is meeple gray: since no ninth hue stays colorblind-safe against
-  the other eight, that player's chart line is dashed and their bar striped instead.
+- **Players** — as many as the table holds. Everyone picks their own look:
+  a colour (9 colorblind-safe hues), a piece (meeple, pawn, rook, star, heart,
+  or robot), and a chart pattern (solid, dashed, or dotted line and bar) — and
+  no two players may wear the same combination, so identity never rides on hue
+  alone. New players are dealt the first free look automatically; meeple gray
+  defaults to dashed since no tenth hue stays colorblind-safe against the rest.
 - **Log a game** — four ways to record a result: tap the *winner* (several for
   co-op wins), tap players in *finishing order*, type *scores* (numeric keypad,
   "lowest score wins" toggle for golf-style games), or play in *teams* — tap
@@ -41,10 +44,12 @@ that phone between openings.
   a win never dents a line. History lets you edit or delete any result, and
   everything rescores instantly.
 - **Highlights** — a fourth tab built for scrolling together as a group:
-  current champion, biggest single win, giant-slayer upsets (measured against
-  ratings at the time), the week's hot streak, the most crushing scoreline,
-  the top rivalry with its head-to-head record, table favorites, the iron
-  player, and weight-class champions.
+  current champion, the full board with the tightest race and widest gap called
+  out, the crown's history of lead changes, girls vs boys (once players set
+  "counts as"), biggest single win, giant-slayer upsets (measured against
+  ratings at the time), hot streaks and cold spells, the most crushing
+  scoreline, nemeses and rivalries, dream teams, field-size and weight-class
+  champions, and more — shareable into any chat as one long picture.
 - **Data** — lives in `localStorage` on the scorekeeper's device; nothing is
   uploaded. Settings offers a JSON backup export/import for safekeeping or
   handing the scoreboard to another phone.
