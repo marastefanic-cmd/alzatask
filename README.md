@@ -32,12 +32,13 @@ that phone between openings.
   included, and ratio-equivalent results (2:1 ≡ 10:5) always pay the same.
   Rankings support shared places: tap a player placed earlier in the order to
   tie them with the one before (tapping the last-placed player undoes it).
-- **The leaderboard ranks points per game**, not totals, computed with two
-  "ghost games" added to everyone's count. Skipping a night doesn't sink you,
-  and a single lucky win can't top the board for the whole week.
-- **The race** — each player's points-per-game rating charted across the week;
-  flat stretches mean they sat that game out. History lets you edit or delete
-  any result, and everything rescores instantly.
+- **The leaderboard ranks the sum of each player's ten best games.** Playing
+  can never hurt you — a below-par game simply doesn't count — skipping a night
+  doesn't sink you, and a single lucky win is just one slot of ten. Play more
+  and only your quality can rise.
+- **The race** — each player's best-ten sum charted across the week; the lines
+  only climb. History lets you edit or delete any result, and everything
+  rescores instantly.
 - **Data** — lives in `localStorage` on the scorekeeper's device; nothing is
   uploaded. Settings offers a JSON backup export/import for safekeeping or
   handing the scoreboard to another phone.

@@ -315,7 +315,7 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '1.7.3 · preview guard';
+const APP_VERSION = '1.8 · best ten';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -478,7 +478,7 @@ function sanitizeState(o){
 }
 
 /* ---------- scoring ---------- */
-const GHOST_GAMES = 2;   // padded onto everyone's game count so one lucky win can't clinch the week
+const BEST_N = 10;       // the leaderboard sums each player's ten best games
 const WEIGHT_LABELS = { 1: 'Light', 2: 'Standard', 3: 'Heavy' };
 
 /* Beat a player, earn the game's weight in points: (players you finished ahead
@@ -528,10 +528,13 @@ function matchSpread(match){
   return mx > mn ? mx - mn : 0;
 }
 
-/* The leaderboard metric: points per game, averaged as if everyone had played
-   GHOST_GAMES extra scoreless games. Skipping a night doesn't sink you, and a
-   single big win doesn't top the board for the whole week. */
-function ratingOf(pts, played){ return pts / (played + GHOST_GAMES); }
+/* The leaderboard metric: the sum of a player's BEST_N highest-paying games.
+   Playing can never hurt — a weak result simply doesn't count — skipping a
+   night doesn't sink you, and one lucky win is just one slot of ten. */
+function bestSum(payouts){
+  const top = [...payouts].sort((a,b) => b - a).slice(0, BEST_N);
+  return Math.round(top.reduce((a,b) => a + b, 0) * 10) / 10;
+}
 
 /* Competition ranking (1,1,3) from scores. */
 function ranksFromScores(entries, lowWins){
@@ -549,7 +552,7 @@ function orderedMatches(){
 }
 
 function standings(){
-  const rows = state.players.map(p => ({ p, pts: 0, wins: 0, played: 0 }));
+  const rows = state.players.map(p => ({ p, pts: 0, wins: 0, played: 0, payouts: [] }));
   const byId = new Map(rows.map(r => [r.p.id, r]));
   for(const m of state.matches){
     for(const r of m.results){
@@ -557,10 +560,12 @@ function standings(){
       if(!row) continue;
       row.played++;
       if(r.rank === 1) row.wins++;
-      row.pts += pointsFor(r, m);
+      const pts = pointsFor(r, m);
+      row.pts += pts;
+      row.payouts.push(pts);
     }
   }
-  rows.forEach(r => { r.rating = ratingOf(r.pts, r.played); });
+  rows.forEach(r => { r.rating = bestSum(r.payouts); r.pts = Math.round(r.pts * 10) / 10; });
   rows.sort((a,b) => b.rating - a.rating || b.pts - a.pts || b.wins - a.wins || a.p.name.localeCompare(b.p.name));
   // competition rank by rating, compared at the same one-decimal precision fmtNum displays
   const key = r => Math.round(r.rating * 10);
@@ -679,7 +684,7 @@ function renderStandings(){
 
   // standings card
   html += '<div class="card"><div class="card-h"><h2>Standings</h2></div>' +
-    '<p class="card-sub">Ranked by points per game · beat a player, earn the game’s weight</p>';
+    '<p class="card-sub">Ranked by your ten best games, summed · beat a player, earn the game’s weight</p>';
   if(ms.length === 0){
     html += '<div class="empty" style="padding:18px"><h2 style="font-size:16px">No games yet</h2>' +
       '<p>Tap the + button to log your first game.</p></div>';
@@ -691,7 +696,7 @@ function renderStandings(){
       meeple(r.p, {crown: isLead}) +
       '<div class="who"><div class="nm">' + esc(r.p.name) + '</div>' +
         '<div class="sub">' + fmtNum(r.pts) + ' pts · ' + r.wins + ' ' + (r.wins === 1 ? 'win' : 'wins') + ' · ' + r.played + ' ' + (r.played === 1 ? 'game' : 'games') + '</div></div>' +
-      '<div class="pts">' + fmtNum(r.rating) + '<small>per game</small></div>' +
+      '<div class="pts">' + fmtNum(r.rating) + '<small>best 10</small></div>' +
       '<div class="bar-track"><div class="bar" style="width:' + (maxRating > 0 ? (r.rating / maxRating * 100) : 0) + '%"></div></div>' +
     '</div>';
   }).join('');
@@ -700,7 +705,7 @@ function renderStandings(){
   // race chart card
   if(ms.length >= 1 && state.players.length >= 2){
     html += '<div class="card" id="raceCard"><div class="card-h"><h2>The race</h2></div>' +
-      '<p class="card-sub">Points per game after each game — flat stretches mean they sat one out</p>' +
+      '<p class="card-sub">Your ten best games, summed, after each game — the lines only climb</p>' +
       '<div class="race-wrap" id="raceWrap">' +
         '<div id="raceSvg"></div>' +
         '<div class="crosshair" id="raceX"></div>' +
@@ -742,13 +747,13 @@ function renderRace(){
   const H = 224;
   const padL = 34, padR = 16, padT = 12, padB = 26;
 
-  // rating trajectory per player, index 0 = start; flat segments = sat that one out
-  const series = state.players.map(p => ({ p, pts: [0], acc: 0, n: 0 }));
+  // best-ten trajectory per player, index 0 = start; lines only ever climb
+  const series = state.players.map(p => ({ p, pts: [0], payouts: [] }));
   for(const m of ms){
     for(const s of series){
       const r = m.results.find(x => x.playerId === s.p.id);
-      if(r){ s.acc += pointsFor(r, m); s.n++; }
-      s.pts.push(s.n ? ratingOf(s.acc, s.n) : 0);
+      if(r) s.payouts.push(pointsFor(r, m));
+      s.pts.push(bestSum(s.payouts));
     }
   }
   const N = ms.length;
@@ -792,7 +797,7 @@ function renderRace(){
   }
 
   $('#raceSvg').innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" ' +
-    'aria-label="Points-per-game rating for each player after each game">' + g + '</svg>';
+    'aria-label="Sum of each player’s ten best games, after each game">' + g + '</svg>';
 
   $('#raceLegend').innerHTML = state.players.map(p =>
     '<span class="lg" style="--pc:' + slotVar(p) + '"><span class="mdot"></span>' + esc(p.name) + '</span>'
@@ -1460,8 +1465,8 @@ function openSettingsSheet(){
       'damped by the crowd (÷ √(players − 1)), so a 9-player win is worth about three duels, not eight. ' +
       'Every way of logging pays the same maximum. In score games the margin refines the result downward: ' +
       'a shutout pays full — the same as a ranked win — a 2:1-ratio win about two-thirds, a photo finish half. ' +
-      'The board ranks <b>points per game</b> (with two “ghost games” added), so skipping a night doesn’t sink you — ' +
-      'and one lucky win can’t clinch the week. ' +
+      'The board ranks the <b>sum of your ten best games</b>: playing can never hurt you (a weak result simply ' +
+      'doesn’t count), skipping a night doesn’t sink you, and one lucky win is just one slot of ten. ' +
       'Ties share a place and count as level, not beaten — in rankings, tap a placed player again to share a place. ' +
       'Quick “Winner” entries pay winners only; in team games you beat everyone on teams behind you.</p></div>' +
 
