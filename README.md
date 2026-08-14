@@ -40,6 +40,11 @@ that phone between openings.
 - **The race** — each player's points-per-game rating charted across the week;
   a win never dents a line. History lets you edit or delete any result, and
   everything rescores instantly.
+- **Highlights** — a fourth tab built for scrolling together as a group:
+  current champion, biggest single win, giant-slayer upsets (measured against
+  ratings at the time), the week's hot streak, the most crushing scoreline,
+  the top rivalry with its head-to-head record, table favorites, the iron
+  player, and weight-class champions.
 - **Data** — lives in `localStorage` on the scorekeeper's device; nothing is
   uploaded. Settings offers a JSON backup export/import for safekeeping or
   handing the scoreboard to another phone.

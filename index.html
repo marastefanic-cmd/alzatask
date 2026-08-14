@@ -146,6 +146,20 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .add-row{display:flex; gap:8px; margin-top:6px}
 .add-row input{flex:1; min-width:0}
 
+/* ---------- highlights ---------- */
+.hl .hl-eyebrow{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:700}
+.hl .hl-main{display:flex; align-items:center; gap:12px; margin-top:10px; min-width:0}
+.hl .hl-title{font-size:19px; font-weight:800; min-width:0;
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif}
+.hl .hl-value{font-size:24px; font-weight:650; margin-left:auto; flex:none; text-align:right;
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif}
+.hl .hl-value small{display:block; font-size:11px; font-weight:400; color:var(--muted); margin-top:-2px}
+.hl .hl-sub{font-size:13px; color:var(--muted); margin-top:6px}
+.hl .hl-row{display:flex; align-items:center; gap:10px; padding:8px 0; font-size:14.5px; min-width:0}
+.hl .hl-row + .hl-row{border-top:1px solid var(--grid)}
+.hl .hl-row .rname{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.hl .hl-row b{margin-left:auto; flex:none; font-variant-numeric:tabular-nums; font-weight:650}
+
 /* ---------- forms ---------- */
 .field{margin:14px 0}
 .field label{display:block; font-size:13px; font-weight:650; color:var(--ink2); margin-bottom:6px}
@@ -271,6 +285,10 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
     <symbol id="i-x" viewBox="0 0 24 24">
       <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
     </symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
+        d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9L11 3Zm8 10l.8 2.2L22 16l-2.2.8L19 19l-.8-2.2L16 16l2.2-.8L19 13Z"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -285,6 +303,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
     <section id="view-standings" aria-label="Standings"></section>
     <section id="view-history" aria-label="History" hidden></section>
     <section id="view-players" aria-label="Players" hidden></section>
+    <section id="view-highlights" aria-label="Highlights" hidden></section>
   </main>
 </div>
 
@@ -293,7 +312,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
   <button class="tab" data-tab="history"><svg aria-hidden="true"><use href="#i-list"/></svg>History</button>
   <button class="log-btn" id="btnLog" aria-label="Log a game"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
   <button class="tab" data-tab="players"><svg aria-hidden="true"><use href="#i-people"/></svg>Players</button>
-  <span></span>
+  <button class="tab" data-tab="highlights"><svg aria-hidden="true"><use href="#i-spark"/></svg>Highlights</button>
 </nav>
 
 <div class="sheet-host" id="sheetHost" aria-hidden="true">
@@ -315,7 +334,7 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '1.9 · forgiving average';
+const APP_VERSION = '2.0 · highlights';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -647,6 +666,7 @@ function renderAll(){
   renderStandings();
   renderHistory();
   renderPlayers();
+  renderHighlights();
   $('#btnLog').disabled = state.players.length < 2;
 }
 
@@ -915,6 +935,215 @@ function matchCard(m){
     '<div class="res">' + rows + '</div>' +
     '<div class="m-actions"><button class="link-btn" data-edit="' + esc(m.id) + '">Edit</button></div>' +
   '</div>';
+}
+
+/* ---------- highlights view ---------- */
+function renderHighlights(){
+  const host = $('#view-highlights');
+  const ms = orderedMatches();
+  if(state.players.length === 0 || ms.length === 0){
+    host.innerHTML = '<div class="card empty"><h2>Nothing to show off yet</h2>' +
+      '<p>Log a few games and this becomes the group’s highlight reel.</p></div>';
+    return;
+  }
+
+  const rows = standings();
+  const pById = new Map(state.players.map(p => [p.id, p]));
+
+  // replay the week: per match, each player's rating before and after
+  const arrs = new Map(state.players.map(p => [p.id, []]));
+  const events = [];
+  for(const m of ms){
+    const per = [];
+    for(const r of m.results){
+      const arr = arrs.get(r.playerId);
+      if(!arr) continue;
+      const before = forgivingAvg(arr);
+      const gamesBefore = arr.length;
+      const pts = pointsFor(r, m);
+      arr.push({ pts, win: r.rank === 1 });
+      per.push({ pid: r.playerId, pts, before, after: forgivingAvg(arr), gamesBefore, rank: r.rank });
+    }
+    events.push({ m, per });
+  }
+
+  const card = (eyebrow, mainHtml, sub) =>
+    '<div class="card hl"><div class="hl-eyebrow">' + eyebrow + '</div>' +
+    '<div class="hl-main">' + mainHtml + '</div>' +
+    (sub ? '<div class="hl-sub">' + sub + '</div>' : '') + '</div>';
+  const when = m => esc(m.game) + ' · day ' + Math.max(1, tripDayOf(m.date));
+  const cards = [];
+
+  // current champion
+  const lead = rows[0];
+  if(lead && lead.rating > 0){
+    cards.push(card('Current champion',
+      meeple(lead.p, { crown: true }) + '<div class="hl-title">' + esc(lead.p.name) + '</div>' +
+      '<div class="hl-value">' + fmtRating(lead.rating) + '<small>per game</small></div>',
+      lead.wins + ' wins across ' + lead.played + ' games — the crown is theirs to lose.'));
+  }
+
+  // biggest single haul
+  let bw = null;
+  for(const ev of events) for(const e of ev.per) if(!bw || e.pts > bw.e.pts) bw = { ev, e };
+  if(bw && bw.e.pts > 0){
+    const p = pById.get(bw.e.pid);
+    cards.push(card('Biggest single win',
+      meeple(p) + '<div class="hl-title">' + esc(p.name) + '</div>' +
+      '<div class="hl-value">+' + fmtNum(bw.e.pts) + '<small>pts</small></div>',
+      when(bw.ev.m) + ' — the fattest haul of the week.'));
+  }
+
+  // giant slayer: beat the highest-rated opponent (ratings at the time, both settled in)
+  let up = null;
+  for(const ev of events){
+    for(const w of ev.per){
+      if(w.rank !== 1 || w.gamesBefore < 2) continue;
+      for(const o of ev.per){
+        const beaten = o.rank == null ? true : o.rank > w.rank;
+        if(!beaten || o.gamesBefore < 2) continue;
+        const gap = o.before - w.before;
+        if(gap > 0 && (!up || gap > up.gap)) up = { gap, ev, w, o };
+      }
+    }
+  }
+  if(up){
+    const wp = pById.get(up.w.pid), op = pById.get(up.o.pid);
+    cards.push(card('Giant slayer',
+      meeple(wp) + '<div class="hl-title">' + esc(wp.name) + ' toppled ' + esc(op.name) + '</div>',
+      when(up.ev.m) + ' — rated ' + fmtRating(up.w.before) + ' against ' + fmtRating(up.o.before) + ' at the time.'));
+  }
+
+  // rocket: biggest one-game rating jump (once settled in)
+  let rk = null;
+  for(const ev of events) for(const e of ev.per){
+    if(e.gamesBefore < 2) continue;
+    const jump = e.after - e.before;
+    if(jump > 0 && (!rk || jump > rk.jump)) rk = { jump, ev, e };
+  }
+  if(rk){
+    const p = pById.get(rk.e.pid);
+    cards.push(card('Rocket of the week',
+      meeple(p) + '<div class="hl-title">' + esc(p.name) + '</div>' +
+      '<div class="hl-value">+' + fmtRating(rk.jump) + '<small>rating</small></div>',
+      when(rk.ev.m) + ' — one game, straight up.'));
+  }
+
+  // hot streak: most consecutive wins in played games
+  let hs = null;
+  const streaks = new Map(state.players.map(p => [p.id, 0]));
+  for(const ev of events) for(const e of ev.per){
+    const cur = e.rank === 1 ? streaks.get(e.pid) + 1 : 0;
+    streaks.set(e.pid, cur);
+    if(cur >= 3 && (!hs || cur > hs.len)) hs = { len: cur, pid: e.pid, ev };
+  }
+  if(hs){
+    const p = pById.get(hs.pid);
+    cards.push(card('Hot streak',
+      meeple(p) + '<div class="hl-title">' + esc(p.name) + '</div>' +
+      '<div class="hl-value">' + hs.len + '<small>wins in a row</small></div>',
+      'Capped with ' + when(hs.ev.m) + '.'));
+  }
+
+  // flawless: most dominant scoreline
+  let fl = null;
+  for(const ev of events){
+    if(ev.m.mode !== 'scores') continue;
+    const rs = ev.m.results;
+    const winner = rs.find(r => r.rank === 1);
+    if(!winner) continue;
+    for(const o of rs){
+      if(o === winner || o.rank === 1) continue;
+      const d = marginBonus(winner, o, ev.m) * 2;
+      if(!fl || d > fl.d) fl = { d, ev, winner, o };
+    }
+  }
+  if(fl && fl.d > 0.3){
+    const wp = pById.get(fl.winner.playerId), op = pById.get(fl.o.playerId);
+    if(wp && op){
+      cards.push(card('Most crushing scoreline',
+        meeple(wp) + '<div class="hl-title">' + esc(wp.name) + ' ' + fmtNum(fl.winner.score) + ':' +
+        fmtNum(fl.o.score) + ' ' + esc(op.name) + '</div>' +
+        '<div class="hl-value">' + Math.round(fl.d * 100) + '%<small>dominance</small></div>',
+        when(fl.ev.m)));
+    }
+  }
+
+  // the rivalry: most-played head-to-head
+  const duels = new Map();
+  for(const ev of events){
+    if(ev.m.results.length !== 2) continue;
+    const [a, b] = ev.m.results;
+    const key = [a.playerId, b.playerId].sort().join('|');
+    if(!duels.has(key)) duels.set(key, { n: 0, wins: new Map() });
+    const d = duels.get(key);
+    d.n++;
+    for(const r of ev.m.results) if(r.rank === 1) d.wins.set(r.playerId, (d.wins.get(r.playerId) || 0) + 1);
+  }
+  let rv = null;
+  for(const [key, d] of duels) if(d.n >= 3 && (!rv || d.n > rv.d.n)) rv = { key, d };
+  if(rv){
+    const [ida, idb] = rv.key.split('|');
+    const pa = pById.get(ida), pb = pById.get(idb);
+    if(pa && pb){
+      const wa = rv.d.wins.get(ida) || 0, wb = rv.d.wins.get(idb) || 0;
+      const first = wa >= wb ? { p: pa, w: wa } : { p: pb, w: wb };
+      const second = wa >= wb ? { p: pb, w: wb } : { p: pa, w: wa };
+      cards.push(card('The rivalry',
+        '<div class="hl-title"><span class="mdot" style="--pc:' + slotVar(first.p) + '"></span> ' + esc(first.p.name) +
+        ' vs <span class="mdot" style="--pc:' + slotVar(second.p) + '"></span> ' + esc(second.p.name) + '</div>' +
+        '<div class="hl-value">' + first.w + ':' + second.w + '<small>' + rv.d.n + ' duels</small></div>',
+        'The week’s most contested head-to-head.'));
+    }
+  }
+
+  // table favorites: most-played games
+  const counts = {};
+  for(const m of ms) counts[m.game] = (counts[m.game] || 0) + 1;
+  const fav = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if(fav.length){
+    cards.push('<div class="card hl"><div class="hl-eyebrow">Table favorites</div>' +
+      fav.map(([g, n]) => '<div class="hl-row"><span class="rname">' + esc(g) + '</span><b>' + n + '×</b></div>').join('') +
+      '</div>');
+  }
+
+  // iron player: most games played
+  const iron = [...rows].sort((a, b) => b.played - a.played)[0];
+  if(iron && iron.played > 0){
+    cards.push(card('Iron player',
+      meeple(iron.p) + '<div class="hl-title">' + esc(iron.p.name) + '</div>' +
+      '<div class="hl-value">' + iron.played + '<small>games</small></div>',
+      'Never skips a table.'));
+  }
+
+  // weight-class champions: best average payout per class (min 2 games in class)
+  const wc = [];
+  for(const w of [1, 2, 3]){
+    let best = null;
+    for(const p of state.players){
+      let sum = 0, n = 0;
+      for(const ev of events){
+        if((ev.m.weight || 2) !== w) continue;
+        const e = ev.per.find(x => x.pid === p.id);
+        if(e){ sum += e.pts; n++; }
+      }
+      if(n >= 2){
+        const avg = sum / n;
+        if(!best || avg > best.avg) best = { p, avg };
+      }
+    }
+    if(best) wc.push({ w, best });
+  }
+  if(wc.length >= 2){
+    cards.push('<div class="card hl"><div class="hl-eyebrow">Weight-class champions</div>' +
+      wc.map(({ w, best }) =>
+        '<div class="hl-row"><span class="mdot" style="--pc:' + slotVar(best.p) + '"></span>' +
+        '<span class="rname">' + esc(WEIGHT_LABELS[w]) + ' ×' + w + ' · ' + esc(best.p.name) + '</span>' +
+        '<b>' + fmtRating(best.avg) + '</b></div>').join('') +
+      '<div class="hl-sub">Best average haul per game in each weight class.</div></div>');
+  }
+
+  host.innerHTML = cards.join('');
 }
 
 /* ---------- players view ---------- */
@@ -1606,7 +1835,9 @@ function switchTab(tab){
   $('#view-standings').hidden = tab !== 'standings';
   $('#view-history').hidden = tab !== 'history';
   $('#view-players').hidden = tab !== 'players';
+  $('#view-highlights').hidden = tab !== 'highlights';
   if(tab === 'standings') renderStandings();
+  if(tab === 'highlights') renderHighlights();
 }
 
 $$('.tabbar .tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
