@@ -334,7 +334,7 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '2.1 · three decimals, sharing';
+const APP_VERSION = '2.2 · a better reel';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -453,7 +453,9 @@ function sanitizeState(o){
       const rawId = typeof p.id === 'string' && p.id ? p.id : null;
       const id = (rawId && ID_RE.test(rawId) && !idMap.has(rawId)) ? rawId : uid();
       if(rawId) idMap.set(rawId, id);
-      s.players.push({ id, name: p.name.trim().slice(0,40), slot });
+      const player = { id, name: p.name.trim().slice(0,40), slot };
+      if(['girl','boy'].includes(p.sex)) player.sex = p.sex;
+      s.players.push(player);
     }
   }
   const ids = new Set(s.players.map(p => p.id));
@@ -973,6 +975,64 @@ function computeHighlights(){
       sub: lead.wins + ' wins across ' + lead.played + ' games — the crown is theirs to lose.' });
   }
 
+  // the crown: lead changes and the longest reign, replayed match by match
+  {
+    let crown = null, changes = 0;
+    const reigns = new Map();
+    const curRating = new Map(state.players.map(p => [p.id, 0]));
+    for(const ev of events){
+      for(const e of ev.per) curRating.set(e.pid, e.after);
+      let best = null;
+      for(const [pid, rt] of curRating){
+        if(rt <= 0) continue;
+        if(!best || rt > best.rt + 1e-12 || (Math.abs(rt - best.rt) < 1e-12 && pid === crown)) best = { pid, rt };
+      }
+      if(best){
+        if(crown && best.pid !== crown) changes++;
+        crown = best.pid;
+        reigns.set(crown, (reigns.get(crown) || 0) + 1);
+      }
+    }
+    let longest = null;
+    for(const [pid, n] of reigns) if(!longest || n > longest.n) longest = { pid, n };
+    if(changes >= 1 && longest && pById.get(longest.pid)){
+      const p = pById.get(longest.pid);
+      items.push({ eyebrow: 'The crown', pid: p.id,
+        segs: [{ t: p.name + ' wore it longest' }],
+        value: String(changes), valueSub: changes === 1 ? 'lead change' : 'lead changes',
+        sub: 'On top for ' + longest.n + ' of ' + ms.length + ' games this week.' });
+    }
+  }
+
+  // girls vs boys, once at least one of each is set
+  {
+    const girls = state.players.filter(p => p.sex === 'girl');
+    const boys = state.players.filter(p => p.sex === 'boy');
+    if(girls.length && boys.length){
+      const rowsBy = new Map(rows.map(r => [r.p.id, r]));
+      const side = list => {
+        const rs = list.map(p => rowsBy.get(p.id)).filter(Boolean);
+        return {
+          avg: rs.reduce((a, r) => a + r.rating, 0) / rs.length,
+          wins: rs.reduce((a, r) => a + r.wins, 0),
+          top: [...rs].sort((a, b) => b.rating - a.rating)[0]
+        };
+      };
+      const g = side(girls), b = side(boys);
+      if(g.top && b.top){
+        const leadSide = g.avg >= b.avg ? 'Girls' : 'Boys';
+        items.push({ eyebrow: 'Girls vs boys',
+          rows: [
+            { label: 'Girls (' + girls.length + ') · avg rating', value: fmtRating(g.avg) },
+            { label: 'Boys (' + boys.length + ') · avg rating', value: fmtRating(b.avg) },
+            { pid: g.top.p.id, label: 'Top girl · ' + g.top.p.name, value: fmtRating(g.top.rating) },
+            { pid: b.top.p.id, label: 'Top boy · ' + b.top.p.name, value: fmtRating(b.top.rating) }
+          ],
+          sub: leadSide + ' lead the week. Wins: girls ' + g.wins + ' · boys ' + b.wins + '.' });
+      }
+    }
+  }
+
   // biggest single haul
   let bw = null;
   for(const ev of events) for(const e of ev.per) if(!bw || e.pts > bw.e.pts) bw = { ev, e };
@@ -1032,6 +1092,34 @@ function computeHighlights(){
       sub: 'Capped with ' + when(hs.ev.m) + '.' });
   }
 
+  // cold spell: longest run of zero-point games (gentle roast, min 4)
+  {
+    let cs = null;
+    const zeroRun = new Map(state.players.map(p => [p.id, 0]));
+    for(const ev of events) for(const e of ev.per){
+      const run = e.pts === 0 ? zeroRun.get(e.pid) + 1 : 0;
+      zeroRun.set(e.pid, run);
+      if(run >= 4 && (!cs || run > cs.run)) cs = { run, pid: e.pid };
+    }
+    if(cs && pById.get(cs.pid)){
+      const p = pById.get(cs.pid);
+      items.push({ eyebrow: 'Cold spell', pid: p.id,
+        segs: [{ t: p.name }], value: String(cs.run), valueSub: 'games without a point',
+        sub: 'Character building. The comeback will be all the sweeter.' });
+    }
+  }
+
+  // deadliest aim: best win rate over a real sample
+  {
+    const eligible = rows.filter(r => r.played >= 5 && r.wins > 0);
+    if(eligible.length){
+      const sn = [...eligible].sort((a, b) => b.wins / b.played - a.wins / a.played || b.wins - a.wins)[0];
+      items.push({ eyebrow: 'Deadliest aim', pid: sn.p.id,
+        segs: [{ t: sn.p.name }], value: Math.round(sn.wins / sn.played * 100) + '%', valueSub: 'win rate',
+        sub: sn.wins + ' wins in ' + sn.played + ' games — the best strike rate of the week.' });
+    }
+  }
+
   // flawless: most dominant scoreline
   let fl = null;
   for(const ev of events){
@@ -1041,6 +1129,8 @@ function computeHighlights(){
     if(!winner) continue;
     for(const o of rs){
       if(o === winner || o.rank === 1) continue;
+      // only real scorelines qualify — a 2:0 best-of-three is not a beatdown
+      if(Math.max(Math.abs(winner.score || 0), Math.abs(o.score || 0)) < 10) continue;
       const d = marginBonus(winner, o, ev.m) * 2;
       if(!fl || d > fl.d) fl = { d, ev, winner, o };
     }
@@ -1066,8 +1156,36 @@ function computeHighlights(){
     d.n++;
     for(const r of ev.m.results) if(r.rank === 1) d.wins.set(r.playerId, (d.wins.get(r.playerId) || 0) + 1);
   }
+  // the nemesis: most one-sided ownage across every table
+  let nemPair = null;
+  {
+    const beats = new Map();
+    for(const ev of events){
+      for(const w of ev.m.results) for(const o of ev.m.results){
+        if(w === o || w.rank == null) continue;
+        const behind = o.rank == null ? true : o.rank > w.rank;
+        if(behind){ const k = w.playerId + '|' + o.playerId; beats.set(k, (beats.get(k) || 0) + 1); }
+      }
+    }
+    let nem = null;
+    for(const [k, n] of beats){
+      const [a, b] = k.split('|');
+      const rev = beats.get(b + '|' + a) || 0;
+      const edge = n - rev;
+      if(n >= 4 && edge >= 3 && (!nem || edge > nem.edge || (edge === nem.edge && n > nem.n))) nem = { a, b, n, rev, edge };
+    }
+    if(nem && pById.get(nem.a) && pById.get(nem.b)){
+      const pa = pById.get(nem.a), pb = pById.get(nem.b);
+      nemPair = [nem.a, nem.b].sort().join('|');
+      items.push({ eyebrow: 'The nemesis',
+        segs: [{ dot: pa.id }, { t: pa.name + ' owns ' }, { dot: pb.id }, { t: pb.name }],
+        value: nem.n + ':' + nem.rev, valueSub: 'finishes ahead',
+        sub: 'Every table tells the same story.' });
+    }
+  }
+
   let rv = null;
-  for(const [key, d] of duels) if(d.n >= 3 && (!rv || d.n > rv.d.n)) rv = { key, d };
+  for(const [key, d] of duels) if(d.n >= 3 && key !== nemPair && (!rv || d.n > rv.d.n)) rv = { key, d };
   if(rv){
     const [ida, idb] = rv.key.split('|');
     const pa = pById.get(ida), pb = pById.get(idb);
@@ -1085,6 +1203,88 @@ function computeHighlights(){
   // table favorites: most-played games
   const counts = {};
   for(const m of ms) counts[m.game] = (counts[m.game] || 0) + 1;
+  // dream team: the duo that keeps winning team games together
+  {
+    const duos2 = new Map();
+    for(const ev of events){
+      if(ev.m.mode !== 'teams') continue;
+      const byRank = new Map();
+      for(const r of ev.m.results){
+        if(!byRank.has(r.rank)) byRank.set(r.rank, []);
+        byRank.get(r.rank).push(r);
+      }
+      for(const [rank, members] of byRank){
+        for(let i = 0; i < members.length; i++) for(let j = i + 1; j < members.length; j++){
+          const k = [members[i].playerId, members[j].playerId].sort().join('|');
+          if(!duos2.has(k)) duos2.set(k, { n: 0, w: 0 });
+          const d = duos2.get(k);
+          d.n++;
+          if(rank === 1) d.w++;
+        }
+      }
+    }
+    let dt = null;
+    for(const [k, d] of duos2){
+      if(d.n < 2 || d.w === 0) continue;
+      if(!dt || d.w / d.n > dt.d.w / dt.d.n || (d.w / d.n === dt.d.w / dt.d.n && d.n > dt.d.n)) dt = { k, d };
+    }
+    if(dt){
+      const [ida, idb] = dt.k.split('|');
+      const pa = pById.get(ida), pb = pById.get(idb);
+      if(pa && pb){
+        items.push({ eyebrow: 'Dream team',
+          segs: [{ dot: pa.id }, { t: pa.name + ' + ' }, { dot: pb.id }, { t: pb.name }],
+          value: dt.d.w + '/' + dt.d.n, valueSub: 'team wins',
+          sub: 'Put them on the same side and good things happen.' });
+      }
+    }
+  }
+
+  // field-size champions: best average haul by table size
+  {
+    const bands = [
+      { label: 'Duels', min: 2, max: 2 },
+      { label: 'Small tables (3–5)', min: 3, max: 5 },
+      { label: 'Big tables (6+)', min: 6, max: 99 }
+    ];
+    const fsz = [];
+    for(const band of bands){
+      let best = null;
+      for(const p of state.players){
+        let sum = 0, n = 0;
+        for(const ev of events){
+          const P = ev.m.results.length;
+          if(P < band.min || P > band.max) continue;
+          const e = ev.per.find(x => x.pid === p.id);
+          if(e){ sum += e.pts; n++; }
+        }
+        if(n >= 3){
+          const avg = sum / n;
+          if(!best || avg > best.avg) best = { p, avg };
+        }
+      }
+      if(best) fsz.push({ band, best });
+    }
+    if(fsz.length >= 2){
+      items.push({ eyebrow: 'Field-size champions',
+        rows: fsz.map(({ band, best }) => ({ pid: best.p.id, label: band.label + ' · ' + best.p.name, value: fmtRating(best.avg) })),
+        sub: 'Best average haul by table size — some rule the duel, some rule the crowd.' });
+    }
+  }
+
+  // busiest day
+  {
+    const dayCounts = {};
+    for(const m of ms) dayCounts[m.date] = (dayCounts[m.date] || 0) + 1;
+    const bd = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0];
+    if(bd && bd[1] >= 3){
+      items.push({ eyebrow: 'Busiest day',
+        segs: [{ t: fmtDate(bd[0], { weekday: 'long' }) }],
+        value: String(bd[1]), valueSub: 'games in one day',
+        sub: fmtDate(bd[0], { weekday: 'long', month: 'short', day: 'numeric' }) + ' — nobody saw the sun.' });
+    }
+  }
+
   const fav = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
   if(fav.length){
     items.push({ eyebrow: 'Table favorites', rows: fav.map(([g, n]) => ({ label: g, value: n + '×' })) });
@@ -1889,6 +2089,13 @@ function openPlayerSheet(pid){
       '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
     '<div class="field"><label for="pName">Name</label>' +
       '<input class="tin" id="pName" maxlength="40" value="' + esc(p.name) + '"></div>' +
+    '<div class="field"><label>Counts as</label>' +
+      '<div class="seg" id="pSex" role="group" aria-label="Player group">' +
+        '<button data-sex="" aria-pressed="' + (!p.sex) + '">Neither</button>' +
+        '<button data-sex="girl" aria-pressed="' + (p.sex === 'girl') + '">Girl</button>' +
+        '<button data-sex="boy" aria-pressed="' + (p.sex === 'boy') + '">Boy</button>' +
+      '</div>' +
+      '<p class="hint" style="margin-top:6px">Optional — powers the girls-vs-boys highlight.</p></div>' +
     (hasResults
       ? '<p class="hint">' + esc(p.name) + ' has logged games, so they can’t be removed — that would rewrite history.</p>'
       : '') +
@@ -1898,6 +2105,11 @@ function openPlayerSheet(pid){
     '</div>'
   );
   $('#shClose').addEventListener('click', closeSheet);
+  let sexChoice = p.sex || '';
+  $$('#pSex button').forEach(b => b.addEventListener('click', () => {
+    sexChoice = b.dataset.sex;
+    $$('#pSex button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.sex === sexChoice)));
+  }));
   $('#pSave').addEventListener('click', () => {
     const name = $('#pName').value.trim();
     if(!name){ toast('Name can’t be empty.'); return; }
@@ -1905,6 +2117,7 @@ function openPlayerSheet(pid){
       toast('There’s already a player called ' + name + '.'); return;
     }
     p.name = name.slice(0,40);
+    if(sexChoice) p.sex = sexChoice; else delete p.sex;
     save(); closeSheet(); renderAll();
   });
   const del = $('#pDelete');
