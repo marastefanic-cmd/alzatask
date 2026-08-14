@@ -1040,6 +1040,29 @@ function computeHighlights(){
   const when = m => m.game + ' · day ' + Math.max(1, tripDayOf(m.date));
   const items = [];
 
+  // the running board after every match — day-end arcs, earthquakes, title math
+  const snapshots = [];
+  {
+    const acc = new Map(state.players.map(p => [p.id, { pts: 0, wins: 0, n: 0, entries: [] }]));
+    for(const ev of events){
+      for(const e of ev.per){
+        const a = acc.get(e.pid);
+        a.entries.push({ pts: e.pts, win: e.rank === 1 });
+        a.pts += e.pts; a.n++;
+        if(e.rank === 1) a.wins++;
+      }
+      const board = state.players.map(p => {
+        const a = acc.get(p.id);
+        return { pid: p.id, key: Math.round(forgivingAvg(a.entries) * 1000), pts: a.pts, wins: a.wins, n: a.n };
+      }).sort((a, b) => b.key - a.key || b.pts - a.pts || b.wins - a.wins ||
+        pById.get(a.pid).name.localeCompare(pById.get(b.pid).name));
+      snapshots.push({ m: ev.m, board, pos: new Map(board.map((r, i) => [r.pid, i + 1])) });
+    }
+  }
+  const lastOfDay = new Map();   // date -> index of that day's final snapshot
+  snapshots.forEach((s, i) => lastOfDay.set(s.m.date, i));
+  const maxHaul = Math.max(0, ...events.flatMap(ev => ev.per.map(e => e.pts)));
+
   // current champion
   const lead = rows[0];
   if(lead && lead.rating > 0){
@@ -1071,6 +1094,36 @@ function computeHighlights(){
     }
   }
 
+  // the crown is alive: what tonight's games could still change — simulated
+  // on the real engine, and only shown while a swing is genuinely in reach
+  {
+    const played = rows.filter(r => r.played > 0);
+    const key = r => Math.round(r.rating * 1000);
+    const leader = played[0];
+    if(leader && played[1] && leader.played >= 8 && key(leader) > key(played[1])){
+      const lk = key(leader);
+      const crownRows = [];
+      for(const ch of played.slice(1, 3)){
+        if(ch.played < 8) continue;
+        const entries = arrs.get(ch.p.id) || [];
+        let need = null;
+        for(let p = 0.1; p <= maxHaul + 1e-9; p = Math.round((p + 0.1) * 10) / 10){
+          if(Math.round(forgivingAvg(entries.concat({ pts: p, win: true })) * 1000) > lk){ need = p; break; }
+        }
+        if(need != null) crownRows.push({ pid: ch.p.id, label: ch.p.name + ' takes the crown with', value: 'a ' + fmtNum(need) + '-pt win' });
+      }
+      const blankKey = Math.round(forgivingAvg((arrs.get(leader.p.id) || []).concat({ pts: 0, win: false })) * 1000);
+      const fragile = blankKey < key(played[1]);
+      if(fragile) crownRows.push({ pid: leader.p.id, label: leader.p.name + ' blanks one game', value: 'crown gone' });
+      if(crownRows.length){
+        items.push({ eyebrow: 'The crown is alive',
+          rows: crownRows,
+          sub: leader.p.name + ' leads by ' + fmtRating((lk - key(played[1])) / 1000) +
+            (fragile ? '. Safest play tonight: don’t play.' : '. Tonight could still flip it.') });
+      }
+    }
+  }
+
   // the crown: lead changes and the longest reign, replayed match by match
   {
     let crown = null, changes = 0;
@@ -1097,6 +1150,52 @@ function computeHighlights(){
         segs: [{ t: p.name + ' wore it longest' }],
         value: String(changes), valueSub: changes === 1 ? 'lead change' : 'lead changes',
         sub: 'On top for ' + longest.n + ' of ' + ms.length + ' games this week.' });
+    }
+  }
+
+  // day-end arcs: the resurrection and the one-night monarch
+  {
+    const dates = [...new Set(events.map(ev => ev.m.date))].sort();
+    const finalBy = new Map(rows.map(r => [r.p.id, r]));
+    if(dates.length >= 3){
+      let rise = null, fall = null;
+      for(const p of state.players){
+        const fr = finalBy.get(p.id);
+        if(!fr || fr.played === 0) continue;
+        let worst = null, best = null;
+        for(let di = 0; di < dates.length; di++){
+          const snap = snapshots[lastOfDay.get(dates[di])];
+          const row = snap.board.find(b => b.pid === p.id);
+          if(!row || row.n < 2) continue;
+          const pos = snap.pos.get(p.id);
+          if(di <= dates.length - 3 && (!worst || pos > worst.pos)) worst = { pos, date: dates[di] };
+          if(di < dates.length - 1 && row.n >= 3 && (!best || pos < best.pos)) best = { pos, date: dates[di] };
+        }
+        if(worst && fr.rank <= 3 && worst.pos - fr.rank >= 4 && (!rise || worst.pos - fr.rank > rise.climb))
+          rise = { p, climb: worst.pos - fr.rank, from: worst, to: fr.rank };
+        if(best && best.pos <= 2 && fr.rank - best.pos >= 3 && (!fall || fr.rank - best.pos > fall.drop))
+          fall = { p, drop: fr.rank - best.pos, from: best, to: fr.rank };
+      }
+      if(rise){
+        const wd = fmtDate(rise.from.date, { weekday: 'long' });
+        const lastEv = events[events.length - 1];
+        const wonLast = rise.to === 1 && lastEv.per.some(e => e.pid === rise.p.id && e.rank === 1);
+        items.push({ eyebrow: 'Back from the dead', pid: rise.p.id,
+          segs: [{ t: rise.p.name }],
+          value: ordinal(rise.from.pos) + ' → ' + ordinal(rise.to), valueSub: '+' + rise.climb + ' places',
+          sub: ordinal(rise.from.pos) + ' on the board at the end of ' + wd +
+            (wonLast ? ' — then took the crown in the literal last game of the week.'
+              : rise.to === 1 ? ' — now wearing the crown.' : ' — now ' + ordinal(rise.to) + '.') });
+      }
+      if(fall && (!rise || fall.p.id !== rise.p.id)){
+        const wd = fmtDate(fall.from.date, { weekday: 'long' });
+        items.push({ eyebrow: fall.p.sex === 'girl' ? 'Queen for a day' : fall.p.sex === 'boy' ? 'King for a day' : 'Monarch for a day',
+          pid: fall.p.id,
+          segs: [{ t: fall.p.name }],
+          value: ordinal(fall.from.pos) + ' → ' + ordinal(fall.to), valueSub: '−' + fall.drop + ' places',
+          sub: (fall.from.pos === 1 ? 'Went to bed ' + wd + ' as leader of the week.' : 'Ended ' + wd + ' in ' + ordinal(fall.from.pos) + '.') +
+            ' The week had other plans.' });
+      }
     }
   }
 
@@ -1139,6 +1238,35 @@ function computeHighlights(){
       sub: when(bw.ev.m) + ' — the fattest haul of the week.' });
   }
 
+  // the earthquake: the one game that shook the whole board (skip the
+  // warm-up first third, where standings are inherently unstable)
+  if(snapshots.length >= 15){
+    let eq = null;
+    for(let i = Math.max(Math.floor(snapshots.length / 3), 1); i < snapshots.length; i++){
+      const prev = snapshots[i - 1], cur = snapshots[i];
+      let shift = 0, big = null;
+      const still = [];
+      for(const p of state.players){
+        const from = prev.pos.get(p.id), to = cur.pos.get(p.id);
+        const a = Math.abs(from - to);
+        shift += a;
+        if(a === 0) still.push(p);
+        if(a > 0 && (!big || a > Math.abs(big.from - big.to))) big = { p, from, to };
+      }
+      if(shift >= 8 && (!eq || shift > eq.shift)) eq = { shift, big, still, m: cur.m };
+    }
+    if(eq && eq.big){
+      const movers = state.players.length - eq.still.length;
+      let sub = movers + ' of ' + state.players.length + ' players changed places — ' +
+        eq.big.p.name + ' went ' + ordinal(eq.big.from) + ' → ' + ordinal(eq.big.to) + '.';
+      if(eq.still.length === 1) sub += ' Only ' + eq.still[0].name + ' kept their footing.';
+      items.push({ eyebrow: 'The earthquake', pid: eq.big.p.id,
+        segs: [{ t: eq.m.game + ' — ' + fmtDate(eq.m.date, { weekday: 'long' }) + ', weight ×' + (eq.m.weight || 2) }],
+        value: String(eq.shift), valueSub: 'floors shaken',
+        sub });
+    }
+  }
+
   // giant slayer: beat the highest-rated opponent (ratings at the time, both settled in)
   let up = null;
   for(const ev of events){
@@ -1159,13 +1287,15 @@ function computeHighlights(){
       sub: when(up.ev.m) + ' — rated ' + fmtRating(up.w.before) + ' against ' + fmtRating(up.o.before) + ' at the time.' });
   }
 
-  // rocket: biggest one-game rating jump (once settled in)
+  // rocket: biggest one-game rating jump (once settled in) — yields when
+  // it's the same player and game the biggest-single-win card just told
   let rk = null;
   for(const ev of events) for(const e of ev.per){
     if(e.gamesBefore < 2) continue;
     const jump = e.after - e.before;
     if(jump > 0 && (!rk || jump > rk.jump)) rk = { jump, ev, e };
   }
+  if(rk && bw && rk.ev === bw.ev && rk.e.pid === bw.e.pid) rk = null;
   if(rk){
     const p = pById.get(rk.e.pid);
     items.push({ eyebrow: 'Rocket of the week', pid: p.id,
@@ -1205,6 +1335,37 @@ function computeHighlights(){
     }
   }
 
+  // run it back: same-day instant rematches where the loser flipped it
+  {
+    const flips = [];
+    for(let i = 1; i < events.length; i++){
+      const a = events[i - 1].m, b = events[i].m;
+      if(a.date !== b.date || a.game.toLowerCase() !== b.game.toLowerCase()) continue;
+      const lostA = new Set(a.results.filter(r => r.rank !== 1).map(r => r.playerId));
+      for(const r of b.results){
+        if(r.rank !== 1 || !lostA.has(r.playerId)) continue;
+        const over = a.results.find(x => x.rank === 1 && x.playerId !== r.playerId);
+        flips.push({ pid: r.playerId, game: b.game, date: b.date, over: over ? over.playerId : null });
+      }
+    }
+    if(flips.length >= 2){
+      const cnt = new Map();
+      flips.forEach(f => cnt.set(f.pid, (cnt.get(f.pid) || 0) + 1));
+      const [topPid, topN] = [...cnt.entries()].sort((x, y) => y[1] - x[1])[0];
+      const last = flips[flips.length - 1];
+      const top = pById.get(topPid), lastP = pById.get(last.pid), lastOver = last.over && pById.get(last.over);
+      if(top && lastP){
+        let sub = topN >= 2 ? top.name + ' avenged ' + topN + ' losses same-day. ' : '';
+        sub += 'Freshest: ' + lastP.name + ' ran ' + last.game + ' straight back' +
+          (lastOver ? ' on ' + lastOver.name : '') + ' (' + fmtDate(last.date, { weekday: 'long' }) + ').';
+        items.push({ eyebrow: 'Run it back', pid: topPid,
+          segs: [{ t: 'Revenge, served same day' }],
+          value: String(flips.length), valueSub: 'rematches flipped',
+          sub });
+      }
+    }
+  }
+
   // deadliest aim: best win rate over a real sample
   {
     const eligible = rows.filter(r => r.played >= 5 && r.wins > 0);
@@ -1238,6 +1399,47 @@ function computeHighlights(){
         segs: [{ t: wp.name + ' ' + fmtNum(fl.winner.score) + ':' + fmtNum(fl.o.score) + ' ' + op.name }],
         value: Math.round(fl.d * 100) + '%', valueSub: 'dominance',
         sub: when(fl.ev.m) });
+    }
+  }
+
+  // wrong day, buddy: a losing score that would have won the other play
+  // of the same game — same title, same scale, wrong table
+  {
+    const byGame = new Map();
+    for(const m of ms){
+      if(m.mode !== 'scores' || m.lowWins) continue;
+      const k = m.game.toLowerCase();
+      if(!byGame.has(k)) byGame.set(k, []);
+      byGame.get(k).push(m);
+    }
+    let wd = null;
+    for(const [, plays] of byGame){
+      if(plays.length < 2) continue;
+      for(const P of plays) for(const Q of plays){
+        if(P === Q) continue;
+        const qw = Q.results.find(r => r.rank === 1 && typeof r.score === 'number');
+        const pw = P.results.find(r => r.rank === 1 && typeof r.score === 'number');
+        // only real, comparable scoreboards: double-digit reference win, and the
+        // two plays' winning scores within 3× of each other (same scale)
+        if(!qw || qw.score < 10 || !pw || pw.score <= 0) continue;
+        if(Math.max(qw.score, pw.score) > 3 * Math.min(qw.score, pw.score)) continue;
+        for(const r of P.results){
+          if(r.rank === 1 || typeof r.score !== 'number') continue;
+          const surplus = (r.score - qw.score) / qw.score;
+          if(surplus >= 0.2 && (!wd || surplus > wd.surplus)){
+            wd = { surplus, r, P, Q, qw, pw };
+          }
+        }
+      }
+    }
+    if(wd && pById.get(wd.r.playerId)){
+      const lp = pById.get(wd.r.playerId);
+      const pp = wd.pw && pById.get(wd.pw.playerId);
+      items.push({ eyebrow: 'Wrong day, buddy', pid: lp.id,
+        segs: [{ t: lp.name + ' — ' + wd.P.game }],
+        value: fmtNum(wd.r.score), valueSub: 'points, no win',
+        sub: 'The other ' + wd.P.game + (wd.P.date === wd.Q.date ? ' that day' : ' this week') + ' was won with ' + fmtNum(wd.qw.score) +
+          (pp ? '. ' + lp.name + ' posted ' + fmtNum(wd.r.score) + '… into ' + pp.name + '’s ' + fmtNum(wd.pw.score) + '.' : '.') });
     }
   }
 
@@ -1293,6 +1495,128 @@ function computeHighlights(){
         segs: [{ dot: first.p.id }, { t: first.p.name + ' vs ' }, { dot: second.p.id }, { t: second.p.name }],
         value: first.w + ':' + second.w, valueSub: rv.d.n + ' duels',
         sub: 'The week’s most contested head-to-head.' });
+    }
+  }
+
+  // unrequited love: the most plays of one game without ever winning it
+  {
+    const pg = new Map();
+    for(const m of ms) for(const r of m.results){
+      const k = r.playerId + '|' + m.game.toLowerCase();
+      if(!pg.has(k)) pg.set(k, { pid: r.playerId, game: m.game, n: 0, w: 0 });
+      const d = pg.get(k);
+      d.n++;
+      if(r.rank === 1) d.w++;
+    }
+    const pining = [...pg.values()].filter(d => d.w === 0 && d.n >= 4 && pById.get(d.pid))
+      .sort((a, b) => b.n - a.n).slice(0, 4);
+    if(pining.length){
+      const gameCnt = new Map();
+      pining.forEach(d => gameCnt.set(d.game.toLowerCase(), (gameCnt.get(d.game.toLowerCase()) || 0) + 1));
+      const topKey = [...gameCnt.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      const gName = pining.find(d => d.game.toLowerCase() === topKey).game;
+      const winCnt = new Map();
+      for(const m of ms){
+        if(m.game.toLowerCase() !== topKey) continue;
+        for(const r of m.results) if(r.rank === 1) winCnt.set(r.playerId, (winCnt.get(r.playerId) || 0) + 1);
+      }
+      const topW = [...winCnt.entries()].sort((a, b) => b[1] - a[1])[0];
+      let sub = 'Zero wins between them.';
+      if(topW && pById.get(topW[0]))
+        sub += ' ' + gName + ' only texts ' + pById.get(topW[0]).name + ' back' + (topW[1] > 1 ? ' — ' + topW[1] + ' times.' : '.');
+      items.push({ eyebrow: 'Unrequited love',
+        rows: pining.map(d => ({ pid: d.pid, label: pById.get(d.pid).name + ' × ' + d.game, value: d.n + ' tries' })),
+        sub });
+    }
+  }
+
+  // lucky charm: whose mere presence makes someone else win
+  {
+    let lc = null;
+    for(const A of state.players) for(const B of state.players){
+      if(A === B) continue;
+      let n1 = 0, w1 = 0, n0 = 0, w0 = 0;
+      for(const m of ms){
+        const ra = m.results.find(r => r.playerId === A.id);
+        if(!ra) continue;
+        if(m.results.some(r => r.playerId === B.id)){ n1++; if(ra.rank === 1) w1++; }
+        else { n0++; if(ra.rank === 1) w0++; }
+      }
+      if(n1 >= 8 && n0 >= 8 && w1 >= 4){
+        const lift = w1 / n1 - w0 / n0;
+        if(lift >= 0.25 && (!lc || lift > lc.lift)) lc = { A, B, n1, w1, n0, w0, lift };
+      }
+    }
+    if(lc){
+      const p1 = Math.round(lc.w1 / lc.n1 * 100), p0 = Math.round(lc.w0 / lc.n0 * 100);
+      items.push({ eyebrow: 'Lucky charm',
+        segs: [{ dot: lc.A.id }, { t: lc.A.name + ' + ' }, { dot: lc.B.id }, { t: lc.B.name }],
+        value: p1 + '%', valueSub: 'win rate together',
+        sub: lc.A.name + ' wins ' + p1 + '% with ' + lc.B.name + ' at the table — ' + p0 + '% without (' +
+          lc.w1 + '/' + lc.n1 + ' vs ' + lc.w0 + '/' + lc.n0 + '). ' + lc.B.name + ', you’re not allowed to go to bed.' });
+    }
+  }
+
+  // the sponsor: the scoring engine's attribution, bucketed by victim —
+  // who did the rest of the field cash the most points off?
+  if(ms.length >= 15){
+    const donated = new Map(), edges = new Map();
+    for(const m of ms){
+      const damp = Math.sqrt(Math.max(m.results.length - 1, 1));
+      const w = m.weight || 2;
+      for(const a of m.results){
+        if(a.rank == null) continue;
+        for(const b of m.results){
+          if(a === b) continue;
+          const behind = b.rank == null ? true : b.rank > a.rank;
+          if(!behind) continue;
+          const slice = (m.mode === 'scores' ? 0.5 + marginBonus(a, b, m) : 1) / damp * w;
+          donated.set(b.playerId, (donated.get(b.playerId) || 0) + slice);
+          const ek = a.playerId + '|' + b.playerId;
+          edges.set(ek, (edges.get(ek) || 0) + slice);
+        }
+      }
+    }
+    let top = null;
+    for(const [pid, tot] of donated){
+      const row = rows.find(r => r.p.id === pid);
+      if(!row || row.played < 10 || tot < 10) continue;
+      if(!top || tot > top.tot) top = { pid, tot, row };
+    }
+    if(top && pById.get(top.pid)){
+      const p = pById.get(top.pid);
+      let farmer = null;
+      for(const [k, v] of edges){
+        const [a, b] = k.split('|');
+        if(b === top.pid && (!farmer || v > farmer.v)) farmer = { pid: a, v };
+      }
+      const fp = farmer && pById.get(farmer.pid);
+      let sub = 'The field cashed ' + fmtNum(top.tot) + ' points by finishing ahead of ' + p.name + '.';
+      if(fp) sub += ' ' + fp.name + ' alone withdrew ' + fmtNum(farmer.v) + '.';
+      if(top.row.wins >= 5) sub += ' Funds the bank, robs it too — ' + top.row.wins + ' wins of their own.';
+      items.push({ eyebrow: 'The sponsor', pid: p.id,
+        segs: [{ t: p.name + ', official sponsor of the week' }],
+        value: fmtNum(top.tot), valueSub: 'pts donated',
+        sub });
+    }
+  }
+
+  // the great stalemate: everyone tied for the win, nobody paid
+  {
+    let st = null;
+    for(const m of ms){
+      if(m.mode !== 'scores' && m.mode !== 'ranking') continue;
+      if(m.results.length < 4 || !m.results.every(r => r.rank === 1)) continue;
+      if(!st || m.results.length > st.results.length) st = m;
+    }
+    if(st){
+      const n = st.results.length;
+      const score = st.mode === 'scores' && typeof st.results[0].score === 'number' ? st.results[0].score : null;
+      items.push({ eyebrow: 'The great stalemate',
+        segs: [{ t: st.game + ' — ' + fmtDate(st.date, { weekday: 'long' }) }],
+        value: n + ' winners', valueSub: '0 pts paid',
+        sub: n + ' players' + (score != null ? ', one score (' + fmtNum(score) + ')' : ', all level') +
+          '. Everybody won, the engine paid nobody. Flawless democracy.' });
     }
   }
 
@@ -1416,6 +1740,43 @@ function computeHighlights(){
     items.push({ eyebrow: 'Weight-class champions',
       rows: wc.map(({ w, best }) => ({ pid: best.p.id, label: WEIGHT_LABELS[w] + ' ×' + w + ' · ' + best.p.name, value: fmtRating(best.avg) })),
       sub: 'Best average haul per game in each weight class.' });
+  }
+
+  // parallel universes: the same week under three alternate rulebooks —
+  // the closing argument, shown only when a universe crowns someone else
+  {
+    const champ = rows[0];
+    if(ms.length >= 15 && champ && champ.rating > 0){
+      const champBy = list => [...list].sort((a, b) => b.key - a.key || b.pts - a.pts || b.wins - a.wins || a.name.localeCompare(b.name))[0];
+      const collect = (ptsOf, ratingOf) => state.players.map(p => {
+        const entries = [];
+        let pts = 0, wins = 0, n = 0;
+        for(const m of ms) for(const r of m.results){
+          if(r.playerId !== p.id) continue;
+          const e = ptsOf(r, m);
+          entries.push({ pts: e, win: r.rank === 1 });
+          pts += e; n++;
+          if(r.rank === 1) wins++;
+        }
+        const rating = ratingOf(entries);
+        return { p, n, wins, pts, rating, key: Math.round(rating * 1000), name: p.name };
+      });
+      const flat = collect((r, m) => pointsFor(r, { ...m, weight: 2 }), forgivingAvg);
+      const strict = collect((r, m) => pointsFor(r, m), es => es.reduce((a, e) => a + e.pts, 0) / (es.length + GHOST_GAMES));
+      const winsOnly = rows.map(r => ({ p: r.p, n: r.played, wins: r.wins, pts: r.pts, key: r.wins * 1000, name: r.p.name }));
+      const universes = [
+        { label: 'All games weigh the same', c: champBy(flat.filter(x => x.n >= 5)), fmt: c => fmtRating(c.rating) },
+        { label: 'Only wins count', c: champBy(winsOnly.filter(x => x.n >= 5)), fmt: c => c.wins + ' wins' },
+        { label: 'No forgiveness', c: champBy(strict.filter(x => x.n >= 5)), fmt: c => fmtRating(c.rating) }
+      ].filter(u => u.c);
+      const differs = universes.filter(u => u.c.p.id !== champ.p.id);
+      if(differs.length){
+        items.push({ eyebrow: 'Parallel universes',
+          rows: [{ pid: champ.p.id, label: 'This universe · ' + champ.p.name, value: fmtRating(champ.rating) }]
+            .concat(universes.map(u => ({ pid: u.c.p.id, label: u.label + ' · ' + u.c.p.name, value: u.fmt(u.c) }))),
+          sub: differs[0].c.p.name + ' would like a word with whoever set the rules.' });
+      }
+    }
   }
 
   return {
