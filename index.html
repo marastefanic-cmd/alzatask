@@ -334,7 +334,7 @@ const STORAGE_KEY = 'gameweek-v1';
 const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
 const SNAP_DAY_KEY = 'gameweek-v1-snapday';
 const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '2.0 · highlights';
+const APP_VERSION = '2.1 · three decimals, sharing';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 const MAX_PLAYERS = 9;
 const SLOT_VARS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8','--s9'];
@@ -599,8 +599,8 @@ function standings(){
   }
   rows.forEach(r => { r.rating = forgivingAvg(r.entries); r.pts = Math.round(r.pts * 10) / 10; });
   rows.sort((a,b) => b.rating - a.rating || b.pts - a.pts || b.wins - a.wins || a.p.name.localeCompare(b.p.name));
-  // competition rank by rating, compared at the same two-decimal precision fmtRating displays
-  const key = r => Math.round(r.rating * 100);
+  // competition rank by rating, compared at the same three-decimal precision fmtRating displays
+  const key = r => Math.round(r.rating * 1000);
   rows.forEach((r,i) => { r.rank = (i > 0 && key(rows[i-1]) === key(r)) ? rows[i-1].rank : i + 1; });
   return rows;
 }
@@ -609,7 +609,7 @@ function standings(){
 function playerById(id){ return state.players.find(p => p.id === id); }
 function slotVar(p){ return 'var(' + SLOT_VARS[p.slot] + ')'; }
 function fmtNum(n){ return (Math.round(n * 10) / 10).toLocaleString('en-US'); }
-function fmtRating(n){ return (Math.round(n * 100) / 100).toFixed(2); }
+function fmtRating(n){ return (Math.round(n * 1000) / 1000).toFixed(3); }
 function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20)%10]||s[v]||s[0]); }
 function fmtDate(iso, opts){
   const [y,m,d] = iso.split('-').map(Number);
@@ -937,15 +937,10 @@ function matchCard(m){
   '</div>';
 }
 
-/* ---------- highlights view ---------- */
-function renderHighlights(){
-  const host = $('#view-highlights');
+/* ---------- highlights: shared data for the screen and the share card ---------- */
+function computeHighlights(){
   const ms = orderedMatches();
-  if(state.players.length === 0 || ms.length === 0){
-    host.innerHTML = '<div class="card empty"><h2>Nothing to show off yet</h2>' +
-      '<p>Log a few games and this becomes the group’s highlight reel.</p></div>';
-    return;
-  }
+  if(state.players.length === 0 || ms.length === 0) return null;
 
   const rows = standings();
   const pById = new Map(state.players.map(p => [p.id, p]));
@@ -967,20 +962,15 @@ function renderHighlights(){
     events.push({ m, per });
   }
 
-  const card = (eyebrow, mainHtml, sub) =>
-    '<div class="card hl"><div class="hl-eyebrow">' + eyebrow + '</div>' +
-    '<div class="hl-main">' + mainHtml + '</div>' +
-    (sub ? '<div class="hl-sub">' + sub + '</div>' : '') + '</div>';
-  const when = m => esc(m.game) + ' · day ' + Math.max(1, tripDayOf(m.date));
-  const cards = [];
+  const when = m => m.game + ' · day ' + Math.max(1, tripDayOf(m.date));
+  const items = [];
 
   // current champion
   const lead = rows[0];
   if(lead && lead.rating > 0){
-    cards.push(card('Current champion',
-      meeple(lead.p, { crown: true }) + '<div class="hl-title">' + esc(lead.p.name) + '</div>' +
-      '<div class="hl-value">' + fmtRating(lead.rating) + '<small>per game</small></div>',
-      lead.wins + ' wins across ' + lead.played + ' games — the crown is theirs to lose.'));
+    items.push({ eyebrow: 'Current champion', pid: lead.p.id, crown: true,
+      segs: [{ t: lead.p.name }], value: fmtRating(lead.rating), valueSub: 'per game',
+      sub: lead.wins + ' wins across ' + lead.played + ' games — the crown is theirs to lose.' });
   }
 
   // biggest single haul
@@ -988,10 +978,9 @@ function renderHighlights(){
   for(const ev of events) for(const e of ev.per) if(!bw || e.pts > bw.e.pts) bw = { ev, e };
   if(bw && bw.e.pts > 0){
     const p = pById.get(bw.e.pid);
-    cards.push(card('Biggest single win',
-      meeple(p) + '<div class="hl-title">' + esc(p.name) + '</div>' +
-      '<div class="hl-value">+' + fmtNum(bw.e.pts) + '<small>pts</small></div>',
-      when(bw.ev.m) + ' — the fattest haul of the week.'));
+    items.push({ eyebrow: 'Biggest single win', pid: p.id,
+      segs: [{ t: p.name }], value: '+' + fmtNum(bw.e.pts), valueSub: 'pts',
+      sub: when(bw.ev.m) + ' — the fattest haul of the week.' });
   }
 
   // giant slayer: beat the highest-rated opponent (ratings at the time, both settled in)
@@ -1009,9 +998,9 @@ function renderHighlights(){
   }
   if(up){
     const wp = pById.get(up.w.pid), op = pById.get(up.o.pid);
-    cards.push(card('Giant slayer',
-      meeple(wp) + '<div class="hl-title">' + esc(wp.name) + ' toppled ' + esc(op.name) + '</div>',
-      when(up.ev.m) + ' — rated ' + fmtRating(up.w.before) + ' against ' + fmtRating(up.o.before) + ' at the time.'));
+    items.push({ eyebrow: 'Giant slayer', pid: wp.id,
+      segs: [{ t: wp.name + ' toppled ' + op.name }],
+      sub: when(up.ev.m) + ' — rated ' + fmtRating(up.w.before) + ' against ' + fmtRating(up.o.before) + ' at the time.' });
   }
 
   // rocket: biggest one-game rating jump (once settled in)
@@ -1023,10 +1012,9 @@ function renderHighlights(){
   }
   if(rk){
     const p = pById.get(rk.e.pid);
-    cards.push(card('Rocket of the week',
-      meeple(p) + '<div class="hl-title">' + esc(p.name) + '</div>' +
-      '<div class="hl-value">+' + fmtRating(rk.jump) + '<small>rating</small></div>',
-      when(rk.ev.m) + ' — one game, straight up.'));
+    items.push({ eyebrow: 'Rocket of the week', pid: p.id,
+      segs: [{ t: p.name }], value: '+' + fmtRating(rk.jump), valueSub: 'rating',
+      sub: when(rk.ev.m) + ' — one game, straight up.' });
   }
 
   // hot streak: most consecutive wins in played games
@@ -1039,10 +1027,9 @@ function renderHighlights(){
   }
   if(hs){
     const p = pById.get(hs.pid);
-    cards.push(card('Hot streak',
-      meeple(p) + '<div class="hl-title">' + esc(p.name) + '</div>' +
-      '<div class="hl-value">' + hs.len + '<small>wins in a row</small></div>',
-      'Capped with ' + when(hs.ev.m) + '.'));
+    items.push({ eyebrow: 'Hot streak', pid: p.id,
+      segs: [{ t: p.name }], value: String(hs.len), valueSub: 'wins in a row',
+      sub: 'Capped with ' + when(hs.ev.m) + '.' });
   }
 
   // flawless: most dominant scoreline
@@ -1061,11 +1048,10 @@ function renderHighlights(){
   if(fl && fl.d > 0.3){
     const wp = pById.get(fl.winner.playerId), op = pById.get(fl.o.playerId);
     if(wp && op){
-      cards.push(card('Most crushing scoreline',
-        meeple(wp) + '<div class="hl-title">' + esc(wp.name) + ' ' + fmtNum(fl.winner.score) + ':' +
-        fmtNum(fl.o.score) + ' ' + esc(op.name) + '</div>' +
-        '<div class="hl-value">' + Math.round(fl.d * 100) + '%<small>dominance</small></div>',
-        when(fl.ev.m)));
+      items.push({ eyebrow: 'Most crushing scoreline', pid: wp.id,
+        segs: [{ t: wp.name + ' ' + fmtNum(fl.winner.score) + ':' + fmtNum(fl.o.score) + ' ' + op.name }],
+        value: Math.round(fl.d * 100) + '%', valueSub: 'dominance',
+        sub: when(fl.ev.m) });
     }
   }
 
@@ -1089,11 +1075,10 @@ function renderHighlights(){
       const wa = rv.d.wins.get(ida) || 0, wb = rv.d.wins.get(idb) || 0;
       const first = wa >= wb ? { p: pa, w: wa } : { p: pb, w: wb };
       const second = wa >= wb ? { p: pb, w: wb } : { p: pa, w: wa };
-      cards.push(card('The rivalry',
-        '<div class="hl-title"><span class="mdot" style="--pc:' + slotVar(first.p) + '"></span> ' + esc(first.p.name) +
-        ' vs <span class="mdot" style="--pc:' + slotVar(second.p) + '"></span> ' + esc(second.p.name) + '</div>' +
-        '<div class="hl-value">' + first.w + ':' + second.w + '<small>' + rv.d.n + ' duels</small></div>',
-        'The week’s most contested head-to-head.'));
+      items.push({ eyebrow: 'The rivalry',
+        segs: [{ dot: first.p.id }, { t: first.p.name + ' vs ' }, { dot: second.p.id }, { t: second.p.name }],
+        value: first.w + ':' + second.w, valueSub: rv.d.n + ' duels',
+        sub: 'The week’s most contested head-to-head.' });
     }
   }
 
@@ -1102,18 +1087,15 @@ function renderHighlights(){
   for(const m of ms) counts[m.game] = (counts[m.game] || 0) + 1;
   const fav = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
   if(fav.length){
-    cards.push('<div class="card hl"><div class="hl-eyebrow">Table favorites</div>' +
-      fav.map(([g, n]) => '<div class="hl-row"><span class="rname">' + esc(g) + '</span><b>' + n + '×</b></div>').join('') +
-      '</div>');
+    items.push({ eyebrow: 'Table favorites', rows: fav.map(([g, n]) => ({ label: g, value: n + '×' })) });
   }
 
   // iron player: most games played
   const iron = [...rows].sort((a, b) => b.played - a.played)[0];
   if(iron && iron.played > 0){
-    cards.push(card('Iron player',
-      meeple(iron.p) + '<div class="hl-title">' + esc(iron.p.name) + '</div>' +
-      '<div class="hl-value">' + iron.played + '<small>games</small></div>',
-      'Never skips a table.'));
+    items.push({ eyebrow: 'Iron player', pid: iron.p.id,
+      segs: [{ t: iron.p.name }], value: String(iron.played), valueSub: 'games',
+      sub: 'Never skips a table.' });
   }
 
   // weight-class champions: best average payout per class (min 2 games in class)
@@ -1135,15 +1117,256 @@ function renderHighlights(){
     if(best) wc.push({ w, best });
   }
   if(wc.length >= 2){
-    cards.push('<div class="card hl"><div class="hl-eyebrow">Weight-class champions</div>' +
-      wc.map(({ w, best }) =>
-        '<div class="hl-row"><span class="mdot" style="--pc:' + slotVar(best.p) + '"></span>' +
-        '<span class="rname">' + esc(WEIGHT_LABELS[w]) + ' ×' + w + ' · ' + esc(best.p.name) + '</span>' +
-        '<b>' + fmtRating(best.avg) + '</b></div>').join('') +
-      '<div class="hl-sub">Best average haul per game in each weight class.</div></div>');
+    items.push({ eyebrow: 'Weight-class champions',
+      rows: wc.map(({ w, best }) => ({ pid: best.p.id, label: WEIGHT_LABELS[w] + ' ×' + w + ' · ' + best.p.name, value: fmtRating(best.avg) })),
+      sub: 'Best average haul per game in each weight class.' });
   }
 
-  host.innerHTML = cards.join('');
+  return {
+    meta: { day: Math.max(1, tripDayOf(todayStr())), games: ms.length, players: state.players.length },
+    items
+  };
+}
+
+/* ---------- highlights view ---------- */
+function renderHighlights(){
+  const host = $('#view-highlights');
+  const data = computeHighlights();
+  if(!data){
+    host.innerHTML = '<div class="card empty"><h2>Nothing to show off yet</h2>' +
+      '<p>Log a few games and this becomes the group’s highlight reel.</p></div>';
+    return;
+  }
+  const pById = new Map(state.players.map(p => [p.id, p]));
+  const seg = s => s.dot
+    ? '<span class="mdot" style="--pc:' + slotVar(pById.get(s.dot)) + '"></span> '
+    : esc(s.t);
+  const html = data.items.map(it => {
+    if(it.rows){
+      return '<div class="card hl"><div class="hl-eyebrow">' + esc(it.eyebrow) + '</div>' +
+        it.rows.map(r =>
+          '<div class="hl-row">' +
+          (r.pid ? '<span class="mdot" style="--pc:' + slotVar(pById.get(r.pid)) + '"></span>' : '') +
+          '<span class="rname">' + esc(r.label) + '</span><b>' + esc(r.value) + '</b></div>').join('') +
+        (it.sub ? '<div class="hl-sub">' + esc(it.sub) + '</div>' : '') + '</div>';
+    }
+    return '<div class="card hl"><div class="hl-eyebrow">' + esc(it.eyebrow) + '</div>' +
+      '<div class="hl-main">' +
+      (it.pid ? meeple(pById.get(it.pid), { crown: !!it.crown }) : '') +
+      '<div class="hl-title">' + it.segs.map(seg).join('') + '</div>' +
+      (it.value ? '<div class="hl-value">' + esc(it.value) + (it.valueSub ? '<small>' + esc(it.valueSub) + '</small>' : '') + '</div>' : '') +
+      '</div>' +
+      (it.sub ? '<div class="hl-sub">' + esc(it.sub) + '</div>' : '') + '</div>';
+  }).join('');
+
+  host.innerHTML =
+    '<div class="card hl" style="display:flex; align-items:center; gap:12px">' +
+      '<div style="min-width:0"><div class="hl-eyebrow">Tonight’s reel</div>' +
+      '<div class="hl-sub" style="margin-top:4px">Day ' + data.meta.day + ' · ' + data.meta.games + ' games · ' +
+        data.meta.players + ' players. Share it as a picture into any chat.</div></div>' +
+      '<button class="btn small" id="hlShare" style="margin-left:auto; flex:none">Share</button>' +
+    '</div>' + html;
+  $('#hlShare').addEventListener('click', shareHighlights);
+}
+
+/* ---------- highlights share card (canvas → native share sheet) ---------- */
+const MEEPLE_D = 'M50 8c8 0 14 6 14 13 0 4-2 8-5 10 3 1 6 3 8 6 3 4 9 6 15 8 6 2 10 5 10 10 0 4-3 7-8 7-7 0-13-2-18-5-1 6 0 11 3 17 3 6 6 11 6 15H61c-3 0-4-2-5-5l-4-12c-1-3-3-3-4 0l-4 12c-1 3-2 5-5 5H25c0-4 3-9 6-15 3-6 4-11 3-17-5 3-11 5-18 5-5 0-8-3-8-7 0-5 4-8 10-10 6-2 12-4 15-8 2-3 5-5 8-6-3-2-5-6-5-10 0-7 6-13 14-13z';
+const CROWN_D = 'M6 30 L4 10 L15 19 L24 4 L33 19 L44 10 L42 30 Z';
+const SHARE_SLOT_COLORS = ['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767','#999488'];
+
+function buildHighlightsCanvas(){
+  const data = computeHighlights();
+  if(!data) return null;
+  const pById = new Map(state.players.map(p => [p.id, p]));
+  const colorOf = pid => SHARE_SLOT_COLORS[(pById.get(pid) || { slot: 8 }).slot] || '#999488';
+
+  const W = 1080, M = 44, P = 40, GAP = 22;
+  const INK = '#ffffff', INK2 = '#c3c2b7', MUTED = '#898781', CARD = '#191918', BG = '#0d0d0d', LINE = '#2c2c2a';
+  const scratch = document.createElement('canvas').getContext('2d');
+  const subFont = '400 27px system-ui, sans-serif';
+
+  // wrap a sub line to at most two lines within the card
+  const wrapSub = text => {
+    scratch.font = subFont;
+    const maxW = W - 2 * M - 2 * P;
+    const words = String(text).split(' ');
+    const lines = [];
+    let cur = '';
+    for(const w of words){
+      const t = cur ? cur + ' ' + w : w;
+      if(scratch.measureText(t).width <= maxW || !cur) cur = t;
+      else { lines.push(cur); cur = w; if(lines.length === 2) break; }
+    }
+    if(lines.length < 2 && cur) lines.push(cur);
+    else if(cur && lines.length === 2) lines[1] = lines[1].replace(/\s*\S*$/, '…');
+    return lines.slice(0, 2);
+  };
+
+  // measure card heights
+  const measured = data.items.map(it => {
+    const subLines = it.sub ? wrapSub(it.sub) : [];
+    let h;
+    if(it.rows) h = P + 34 + it.rows.length * 66 + (subLines.length ? 16 + subLines.length * 38 : 0) + P - 10;
+    else h = P + 34 + 96 + (subLines.length ? subLines.length * 38 : 0) + P - 10;
+    return { it, subLines, h };
+  });
+
+  const headerH = 210, footerH = 96;
+  const H = headerH + measured.reduce((a, m) => a + m.h + GAP, 0) + footerH;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * 2; canvas.height = H * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  const rrect = (x, y, w, h, r) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+  const drawMeeple = (x, y, size, color, crown) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 100, size / 100);
+    ctx.fillStyle = color;
+    ctx.fill(new Path2D(MEEPLE_D));
+    if(crown){
+      ctx.translate(26, -16);
+      ctx.fillStyle = '#eda100';
+      ctx.strokeStyle = CARD;
+      ctx.lineWidth = 3;
+      const c = new Path2D(CROWN_D);
+      ctx.fill(c); ctx.stroke(c);
+    }
+    ctx.restore();
+  };
+
+  // ground + header
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+  drawMeeple(M, 42, 92, SHARE_SLOT_COLORS[0], true);
+  ctx.fillStyle = INK;
+  ctx.font = '800 64px system-ui, sans-serif';
+  ctx.fillText(state.trip.name, M + 120, 106);
+  ctx.fillStyle = INK2;
+  ctx.font = '400 30px system-ui, sans-serif';
+  ctx.fillText('Day ' + data.meta.day + ' · ' + data.meta.games + ' games · ' + data.meta.players + ' players', M + 120, 152);
+
+  let y = headerH;
+  for(const { it, subLines, h } of measured){
+    ctx.fillStyle = CARD;
+    rrect(M, y, W - 2 * M, h, 24);
+    ctx.fill();
+    const x0 = M + P;
+    let cy = y + P + 8;
+    ctx.fillStyle = MUTED;
+    ctx.font = '700 24px system-ui, sans-serif';
+    ctx.fillText(it.eyebrow.toUpperCase(), x0, cy);
+    cy += 30;
+
+    if(it.rows){
+      ctx.font = '400 30px system-ui, sans-serif';
+      for(let i = 0; i < it.rows.length; i++){
+        const r = it.rows[i];
+        const ry = cy + i * 66 + 42;
+        if(i > 0){
+          ctx.strokeStyle = LINE; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(x0, cy + i * 66 + 2); ctx.lineTo(W - M - P, cy + i * 66 + 2); ctx.stroke();
+        }
+        let lx = x0;
+        if(r.pid){
+          ctx.fillStyle = colorOf(r.pid);
+          ctx.beginPath(); ctx.arc(lx + 11, ry - 10, 11, 0, 7); ctx.fill();
+          lx += 34;
+        }
+        ctx.fillStyle = INK; ctx.font = '400 30px system-ui, sans-serif';
+        ctx.fillText(r.label, lx, ry);
+        ctx.font = '650 30px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(r.value, W - M - P, ry);
+        ctx.textAlign = 'left';
+      }
+      cy += it.rows.length * 66 + 8;
+    } else {
+      const midY = cy + 48;
+      let lx = x0;
+      if(it.pid){
+        drawMeeple(lx, midY - 40, 80, colorOf(it.pid), !!it.crown);
+        lx += 100;
+      }
+      // right-aligned value block first, so the title knows its room
+      let valueLeft = W - M - P;
+      if(it.value){
+        ctx.textAlign = 'right';
+        ctx.fillStyle = INK;
+        ctx.font = '700 56px system-ui, sans-serif';
+        ctx.fillText(it.value, W - M - P, midY + 16);
+        valueLeft -= ctx.measureText(it.value).width + 24;
+        if(it.valueSub){
+          ctx.fillStyle = MUTED;
+          ctx.font = '400 23px system-ui, sans-serif';
+          ctx.fillText(it.valueSub, W - M - P, midY + 46);
+        }
+        ctx.textAlign = 'left';
+      }
+      ctx.fillStyle = INK;
+      ctx.font = '800 42px system-ui, sans-serif';
+      let title = '';
+      const dots = [];
+      for(const s of it.segs){
+        if(s.dot){ dots.push({ at: ctx.measureText(title).width, pid: s.dot }); title += '    '; }
+        else title += s.t;
+      }
+      while(ctx.measureText(title).width > valueLeft - lx - 12 && title.length > 4) title = title.slice(0, -2);
+      ctx.fillText(title, lx, midY + 14);
+      for(const d of dots){
+        ctx.fillStyle = colorOf(d.pid);
+        ctx.beginPath(); ctx.arc(lx + d.at + 14, midY + 2, 12, 0, 7); ctx.fill();
+        ctx.fillStyle = INK;
+      }
+      cy = midY + 56;
+    }
+
+    if(subLines.length){
+      ctx.fillStyle = INK2;
+      ctx.font = subFont;
+      subLines.forEach((ln, i) => ctx.fillText(ln, x0, cy + 20 + i * 38));
+    }
+    y += h + GAP;
+  }
+
+  ctx.fillStyle = MUTED;
+  ctx.font = '400 24px system-ui, sans-serif';
+  ctx.fillText('Game Week · the vacation scoreboard', M, H - 40);
+  return canvas;
+}
+
+function shareHighlights(){
+  const canvas = buildHighlightsCanvas();
+  if(!canvas){ toast('Nothing to share yet.'); return; }
+  canvas.toBlob(async blob => {
+    if(!blob){ toast('Couldn’t build the picture.'); return; }
+    const file = new File([blob], 'game-week-highlights.png', { type: 'image/png' });
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      try {
+        await navigator.share({ files: [file], title: state.trip.name });
+        return;
+      } catch(e){
+        if(e && e.name === 'AbortError') return;   // user closed the sheet — not an error
+      }
+    }
+    // fallback: plain download (desktop browsers)
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'game-week-highlights.png';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast('Saved as a picture — send it to the group.');
+  }, 'image/png');
 }
 
 /* ---------- players view ---------- */
