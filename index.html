@@ -107,6 +107,7 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .mavatar svg.meeple{width:34px; height:34px; color:var(--pc); display:block}
 .mavatar .crown{position:absolute; top:-9px; left:50%; transform:translateX(-50%) rotate(-8deg); width:18px; height:13px}
 .mdot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--pc); flex:none}
+.pdot{display:inline-block; width:13px; height:13px; flex:none; vertical-align:-2px}
 
 /* ---------- player look pickers ---------- */
 .swatches{display:flex; flex-wrap:wrap; gap:9px}
@@ -139,7 +140,8 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .match .m-top{display:flex; align-items:baseline; gap:8px}
 .match .m-top h3{font-size:16px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .match .m-top .m-meta{font-size:12px; color:var(--muted); flex:none; margin-left:auto}
-.match .res{display:grid; grid-template-columns:34px 12px minmax(0,1fr) auto auto; gap:4px 8px; align-items:center; margin-top:10px}
+.match .res{display:grid; grid-template-columns:34px 13px minmax(0,1fr) auto auto; gap:4px 8px; align-items:center; margin-top:10px}
+.match .res .pdot{vertical-align:0}
 .match .res .pl{font-size:12px; font-weight:700; color:var(--muted)}
 .match .res .rn{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14.5px}
 .match .res .sc{font-size:13px; color:var(--ink2); font-variant-numeric:tabular-nums; text-align:right}
@@ -501,9 +503,27 @@ function sanitizeState(o){
       const player = { id, name: p.name.trim().slice(0,40), slot };
       if(['girl','boy'].includes(p.sex)) player.sex = p.sex;
       if(Number.isInteger(p.color) && p.color >= 0 && p.color < N_COLORS) player.color = p.color;
-      if(typeof p.shape === 'string' && SHAPES[p.shape]) player.shape = p.shape;
+      if(typeof p.shape === 'string' && SHAPE_KEYS.includes(p.shape)) player.shape = p.shape;
       if(PATTERNS.includes(p.pattern)) player.pattern = p.pattern;
       s.players.push(player);
+    }
+    // No two imported players may wear the same colour × piece — the picker
+    // enforces it, so imports must too or those players' sheets lock up.
+    // First to wear a look keeps it; later clashes get dealt the next free one.
+    const seenLooks = new Set();
+    for(const p of s.players){
+      let k = lookKey(p);
+      if(seenLooks.has(k)){
+        outer: for(let si = 0; si < SHAPE_KEYS.length; si++)
+          for(let c = 0; c < N_COLORS; c++){
+            if(!seenLooks.has(c + '|' + SHAPE_KEYS[si])){
+              p.color = c; p.shape = SHAPE_KEYS[si]; p.pattern = defaultPattern(c, si);
+              k = lookKey(p);
+              break outer;
+            }
+          }
+      }
+      seenLooks.add(k);
     }
   }
   const ids = new Set(s.players.map(p => p.id));
@@ -662,24 +682,36 @@ function playerById(id){ return state.players.find(p => p.id === id); }
    from the slot so every pre-customization board keeps its exact old look
    (gray — colour 8 — stays dashed/striped unless the player chooses otherwise). */
 function colorIdx(p){ return Number.isInteger(p.color) && p.color >= 0 && p.color < N_COLORS ? p.color : p.slot % N_COLORS; }
-function shapeOf(p){ return SHAPES[p.shape] ? p.shape : 'meeple'; }
+function shapeOf(p){ return SHAPE_KEYS.includes(p.shape) ? p.shape : 'meeple'; }
 function patternOf(p){ return PATTERNS.includes(p.pattern) ? p.pattern : (colorIdx(p) === 8 ? 'dash' : 'solid'); }
-function lookKey(p){ return colorIdx(p) + '|' + shapeOf(p) + '|' + patternOf(p); }
+/* Identity = colour × piece: those two are visible EVERYWHERE a player appears
+   (dots, avatars, the share picture). Pattern only textures chart lines/bars,
+   so it never counts toward uniqueness. */
+function lookKey(p){ return colorIdx(p) + '|' + shapeOf(p); }
 function slotVar(p){ return 'var(' + SLOT_VARS[colorIdx(p)] + ')'; }
 function patternClass(p){ const pat = patternOf(p); return pat === 'solid' ? '' : ' pat-' + pat; }
 function lineDash(p){ const pat = patternOf(p); return pat === 'dash' ? '7 5' : pat === 'dot' ? '2 6' : ''; }
-/* First look no current player wears: 9 colours, then new shapes, then patterns.
-   Gray prefers dashed (its solid bar/line reads too much like the other hues). */
+/* Default pattern for an auto-dealt look: each reuse of the colour wheel takes
+   the next texture, so the 10th player's line never mimics the 1st's. The first
+   gray stays dashed (its solid line reads too much like the other hues). */
+function defaultPattern(color, shapeIdx){
+  if(color === 8 && shapeIdx === 0) return 'dash';
+  return PATTERNS[shapeIdx % PATTERNS.length];
+}
+/* First colour × piece combo no current player wears. */
 function freeLook(){
   const used = new Set(state.players.map(lookKey));
-  for(let pi = 0; pi < PATTERNS.length; pi++)
-    for(const shape of SHAPE_KEYS)
-      for(let color = 0; color < N_COLORS; color++){
-        const prefs = color === 8 ? ['dash','solid','dot'] : PATTERNS;
-        const cand = color + '|' + shape + '|' + prefs[pi];
-        if(!used.has(cand)) return { color, shape, pattern: prefs[pi] };
-      }
+  for(let si = 0; si < SHAPE_KEYS.length; si++)
+    for(let color = 0; color < N_COLORS; color++){
+      if(!used.has(color + '|' + SHAPE_KEYS[si]))
+        return { color, shape: SHAPE_KEYS[si], pattern: defaultPattern(color, si) };
+    }
   return { color: state.players.length % N_COLORS, shape: 'meeple', pattern: 'solid' };
+}
+/* A small inline piece glyph — used wherever a colour dot used to stand for a
+   player, so two players sharing a hue still tell apart at a glance. */
+function pieceDot(p){
+  return '<svg class="pdot" style="color:' + slotVar(p) + '" aria-hidden="true"><use href="#i-sh-' + shapeOf(p) + '"/></svg>';
 }
 function fmtNum(n){ return (Math.round(n * 10) / 10).toLocaleString('en-US'); }
 function fmtRating(n){ return (Math.round(n * 1000) / 1000).toFixed(3); }
@@ -947,7 +979,7 @@ function raceHover(ev){
   const title = i === 0 ? 'Start' :
     '#' + i + ' · ' + esc(ms[i-1].game) + ' · ' + esc(fmtDate(ms[i-1].date, {month:'short', day:'numeric'}));
   const rows = [...series].sort((a,b) => b.pts[i] - a.pts[i]).map(s =>
-    '<div class="tt-row" style="--pc:' + slotVar(s.p) + '"><span class="mdot"></span>' +
+    '<div class="tt-row" style="--pc:' + slotVar(s.p) + '">' + pieceDot(s.p) +
     '<span>' + esc(s.p.name) + '</span><b>' + fmtRating(s.pts[i]) + '</b></div>'
   ).join('');
   tip.innerHTML = '<div class="tt-title">' + title + '</div>' + rows;
@@ -995,7 +1027,7 @@ function matchCard(m){
     if(!p) return '';
     const pts = pointsFor(r, m);
     return '<div class="pl">' + (r.rank ? ordinal(r.rank) : '—') + '</div>' +
-      '<span class="mdot" style="--pc:' + slotVar(p) + '"></span>' +
+      pieceDot(p) +
       '<div class="rn">' + esc(p.name) + '</div>' +
       '<div class="sc">' + (r.score != null ? fmtNum(r.score) : '') + '</div>' +
       '<div class="pp">' + (pts > 0 ? '+' + fmtNum(pts) : '·') + '</div>';
@@ -1153,10 +1185,19 @@ function computeHighlights(){
     }
   }
 
-  // day-end arcs: the resurrection and the one-night monarch
+  // day-end arcs: the resurrection and the one-night monarch.
+  // Ranks are competition ranks by rating key — a board full of ties is a
+  // board full of shared places, never a fabricated climb or fall.
   {
     const dates = [...new Set(events.map(ev => ev.m.date))].sort();
     const finalBy = new Map(rows.map(r => [r.p.id, r]));
+    const rankIn = (snap, pid) => {
+      const row = snap.board.find(b => b.pid === pid);
+      if(!row) return null;
+      let r = 1;
+      for(const b of snap.board) if(b.key > row.key) r++;
+      return r;
+    };
     if(dates.length >= 3){
       let rise = null, fall = null;
       for(const p of state.players){
@@ -1167,7 +1208,7 @@ function computeHighlights(){
           const snap = snapshots[lastOfDay.get(dates[di])];
           const row = snap.board.find(b => b.pid === p.id);
           if(!row || row.n < 2) continue;
-          const pos = snap.pos.get(p.id);
+          const pos = rankIn(snap, p.id);
           if(di <= dates.length - 3 && (!worst || pos > worst.pos)) worst = { pos, date: dates[di] };
           if(di < dates.length - 1 && row.n >= 3 && (!best || pos < best.pos)) best = { pos, date: dates[di] };
         }
@@ -1335,32 +1376,33 @@ function computeHighlights(){
     }
   }
 
-  // run it back: same-day instant rematches where the loser flipped it
+  // run it back: same-day instant rematches where a loser flipped it.
+  // One flip per REMATCH — a shared (team/tied) revenge win is still one
+  // revenge, credited to every avenger but counted once.
   {
     const flips = [];
+    const avenged = new Map();
     for(let i = 1; i < events.length; i++){
       const a = events[i - 1].m, b = events[i].m;
       if(a.date !== b.date || a.game.toLowerCase() !== b.game.toLowerCase()) continue;
       const lostA = new Set(a.results.filter(r => r.rank !== 1).map(r => r.playerId));
-      for(const r of b.results){
-        if(r.rank !== 1 || !lostA.has(r.playerId)) continue;
-        const over = a.results.find(x => x.rank === 1 && x.playerId !== r.playerId);
-        flips.push({ pid: r.playerId, game: b.game, date: b.date, over: over ? over.playerId : null });
-      }
+      const avengers = b.results.filter(r => r.rank === 1 && lostA.has(r.playerId)).map(r => r.playerId);
+      if(!avengers.length) continue;
+      const over = a.results.find(x => x.rank === 1 && !avengers.includes(x.playerId));
+      flips.push({ pid: avengers[0], game: b.game, date: b.date, over: over ? over.playerId : null });
+      for(const pid of avengers) avenged.set(pid, (avenged.get(pid) || 0) + 1);
     }
     if(flips.length >= 2){
-      const cnt = new Map();
-      flips.forEach(f => cnt.set(f.pid, (cnt.get(f.pid) || 0) + 1));
-      const [topPid, topN] = [...cnt.entries()].sort((x, y) => y[1] - x[1])[0];
+      const [topPid, topN] = [...avenged.entries()].sort((x, y) => y[1] - x[1])[0];
       const last = flips[flips.length - 1];
       const top = pById.get(topPid), lastP = pById.get(last.pid), lastOver = last.over && pById.get(last.over);
       if(top && lastP){
         let sub = topN >= 2 ? top.name + ' avenged ' + topN + ' losses same-day. ' : '';
         sub += 'Freshest: ' + lastP.name + ' ran ' + last.game + ' straight back' +
           (lastOver ? ' on ' + lastOver.name : '') + ' (' + fmtDate(last.date, { weekday: 'long' }) + ').';
-        items.push({ eyebrow: 'Run it back', pid: topPid,
+        items.push({ eyebrow: 'Run it back', pid: topN >= 2 ? topPid : lastP.id,
           segs: [{ t: 'Revenge, served same day' }],
-          value: String(flips.length), valueSub: 'rematches flipped',
+          value: String(flips.length), valueSub: flips.length === 1 ? 'rematch flipped' : 'rematches flipped',
           sub });
       }
     }
@@ -1796,14 +1838,14 @@ function renderHighlights(){
   }
   const pById = new Map(state.players.map(p => [p.id, p]));
   const seg = s => s.dot
-    ? '<span class="mdot" style="--pc:' + slotVar(pById.get(s.dot)) + '"></span> '
+    ? pieceDot(pById.get(s.dot)) + ' '
     : esc(s.t);
   const html = data.items.map(it => {
     if(it.rows){
       return '<div class="card hl"><div class="hl-eyebrow">' + esc(it.eyebrow) + '</div>' +
         it.rows.map(r =>
           '<div class="hl-row">' +
-          (r.pid ? '<span class="mdot" style="--pc:' + slotVar(pById.get(r.pid)) + '"></span>' : '') +
+          (r.pid ? pieceDot(pById.get(r.pid)) : '') +
           '<span class="rname">' + esc(r.label) + '</span><b>' + esc(r.value) + '</b></div>').join('') +
         (it.sub ? '<div class="hl-sub">' + esc(it.sub) + '</div>' : '') + '</div>';
     }
@@ -1889,7 +1931,7 @@ function buildHighlightsCanvas(){
     ctx.translate(x, y);
     ctx.scale(size / 100, size / 100);
     ctx.fillStyle = color;
-    const sh = SHAPES[shapeKey] || SHAPES.meeple;
+    const sh = SHAPE_KEYS.includes(shapeKey) ? SHAPES[shapeKey] : SHAPES.meeple;
     const path = new Path2D(sh.d);
     if(sh.evenodd) ctx.fill(path, 'evenodd'); else ctx.fill(path);
     if(crown){
@@ -1927,7 +1969,6 @@ function buildHighlightsCanvas(){
     cy += 30;
 
     if(it.rows){
-      ctx.font = '400 30px system-ui, sans-serif';
       for(let i = 0; i < it.rows.length; i++){
         const r = it.rows[i];
         const ry = cy + i * 66 + 42;
@@ -1937,12 +1978,21 @@ function buildHighlightsCanvas(){
         }
         let lx = x0;
         if(r.pid){
-          ctx.fillStyle = colorOf(r.pid);
-          ctx.beginPath(); ctx.arc(lx + 11, ry - 10, 11, 0, 7); ctx.fill();
-          lx += 34;
+          drawMeeple(lx, ry - 32, 28, colorOf(r.pid), false, pieceOf(r.pid));
+          lx += 38;
         }
-        ctx.fillStyle = INK; ctx.font = '400 30px system-ui, sans-serif';
-        ctx.fillText(r.label, lx, ry);
+        ctx.font = '650 30px system-ui, sans-serif';
+        const valueW = ctx.measureText(r.value).width;
+        ctx.fillStyle = INK;
+        ctx.font = '400 30px system-ui, sans-serif';
+        // the label must never run under the right-aligned value
+        let label = r.label;
+        const labelMax = W - M - P - lx - valueW - 20;
+        if(ctx.measureText(label).width > labelMax){
+          while(label.length > 2 && ctx.measureText(label + '…').width > labelMax) label = label.slice(0, -1);
+          label += '…';
+        }
+        ctx.fillText(label, lx, ry);
         ctx.font = '650 30px system-ui, sans-serif';
         ctx.textAlign = 'right';
         ctx.fillText(r.value, W - M - P, ry);
@@ -1982,8 +2032,7 @@ function buildHighlightsCanvas(){
       while(ctx.measureText(title).width > valueLeft - lx - 12 && title.length > 4) title = title.slice(0, -2);
       ctx.fillText(title, lx, midY + 14);
       for(const d of dots){
-        ctx.fillStyle = colorOf(d.pid);
-        ctx.beginPath(); ctx.arc(lx + d.at + 14, midY + 2, 12, 0, 7); ctx.fill();
+        drawMeeple(lx + d.at + 2, midY - 14, 30, colorOf(d.pid), false, pieceOf(d.pid));
         ctx.fillStyle = INK;
       }
       cy = midY + 56;
@@ -2563,7 +2612,7 @@ function openPlayerSheet(pid){
       '<div class="seg" id="pPattern" role="group" aria-label="Chart pattern">' +
       PATTERNS.map(k => '<button data-pattern="' + k + '" aria-pressed="' + (k === look.pattern) + '">' + PATTERN_LABELS[k] + '</button>').join('') +
       '</div>' +
-      '<p class="hint" style="margin-top:6px">How their line and bar are drawn — patterns keep look-alike colours tellable apart.</p></div>' +
+      '<p class="hint" style="margin-top:6px">How their line and bar are textured on the charts.</p></div>' +
     '<div class="field"><label>Counts as</label>' +
       '<div class="seg" id="pSex" role="group" aria-label="Player group">' +
         '<button data-sex="" aria-pressed="' + (!p.sex) + '">Neither</button>' +
@@ -2603,9 +2652,9 @@ function openPlayerSheet(pid){
     if(state.players.some(x => x.id !== pid && x.name.toLowerCase() === name.toLowerCase())){
       toast('There’s already a player called ' + name + '.'); return;
     }
-    const key = look.color + '|' + look.shape + '|' + look.pattern;
+    const key = look.color + '|' + look.shape;
     const clash = state.players.find(x => x.id !== pid && lookKey(x) === key);
-    if(clash){ toast(clash.name + ' already wears that exact look — change the colour, piece, or pattern.'); return; }
+    if(clash){ toast(clash.name + ' already wears that colour and piece — change one of them.'); return; }
     p.name = name.slice(0,40);
     p.color = look.color; p.shape = look.shape; p.pattern = look.pattern;
     if(sexChoice) p.sex = sexChoice; else delete p.sex;
