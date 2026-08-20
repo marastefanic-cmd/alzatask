@@ -412,27 +412,69 @@ const snapKey = () => storageKey + '-yesterday';   // rolling previous-day snaps
 const snapDayKey = () => storageKey + '-snapday';
 const brokenKey = () => storageKey + '-broken';    // unreadable data is preserved, never discarded
 
-/* The index lists every event; entry names mirror each board's trip name.
-   Returns null when absent or unusable (first run, or pre-events install). */
-function eventsIndex(){
+/* Every event board actually on this device, found by scanning storage keys —
+   the safety net that makes the index rebuildable instead of load-bearing. */
+function scanEventBoards(){
+  const found = [];
   try {
-    const raw = localStorage.getItem(EVENTS_KEY);
-    if(!raw) return null;
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(!EVENT_KEY_RE.test(k) || /-(yesterday|snapday|broken)$/.test(k)) continue;
+      let name = 'Game Week';
+      try {
+        const p = JSON.parse(localStorage.getItem(k));
+        if(p && p.trip && typeof p.trip.name === 'string' && p.trip.name.trim()) name = p.trip.name.trim().slice(0,60);
+      } catch(e){}
+      found.push({ key: k, name });
+    }
+  } catch(e){}
+  found.sort((a, b) => a.key === 'gameweek-v1' ? -1 : b.key === 'gameweek-v1' ? 1 : a.name.localeCompare(b.name));
+  return found;
+}
+
+/* The index lists every event; entry names mirror each board's trip name.
+   Returns null only when no index was ever written (first run / pre-events
+   install). An index that EXISTS but is unreadable gets the same treatment
+   as unreadable board bytes: the raw string is preserved, and the index is
+   rebuilt by re-adopting every board found on the device — a bad byte in
+   the index must never orphan a scoreboard. */
+function eventsIndex(){
+  let raw = null;
+  try { raw = localStorage.getItem(EVENTS_KEY); } catch(e){ return null; }
+  if(!raw) return null;
+  try {
     const ix = JSON.parse(raw);
-    if(!ix || !Array.isArray(ix.events)) return null;
-    const events = ix.events
-      .filter(e => e && typeof e.key === 'string' && EVENT_KEY_RE.test(e.key))
-      .map(e => ({ key: e.key, name: (typeof e.name === 'string' && e.name.trim()) ? e.name.trim().slice(0,60) : 'Game Week' }));
-    // one entry per key, and the active key must be listed
-    const seen = new Set();
-    const clean = events.filter(e => !seen.has(e.key) && seen.add(e.key));
-    if(!clean.length) return null;
-    const active = (typeof ix.active === 'string' && clean.some(e => e.key === ix.active)) ? ix.active : clean[0].key;
-    return { active, events: clean };
-  } catch(e){ return null; }
+    if(ix && Array.isArray(ix.events)){
+      const events = ix.events
+        .filter(e => e && typeof e.key === 'string' && EVENT_KEY_RE.test(e.key))
+        .map(e => ({ key: e.key, name: (typeof e.name === 'string' && e.name.trim()) ? e.name.trim().slice(0,60) : 'Game Week' }));
+      // one entry per key, and the active key must be listed
+      const seen = new Set();
+      const clean = events.filter(e => !seen.has(e.key) && seen.add(e.key));
+      if(clean.length){
+        const active = (typeof ix.active === 'string' && clean.some(e => e.key === ix.active)) ? ix.active : clean[0].key;
+        return { active, events: clean };
+      }
+    }
+  } catch(e){}
+  // unreadable: keep the bytes, rebuild from the boards themselves
+  try { localStorage.setItem(EVENTS_KEY + '-broken', raw); } catch(e){}
+  const events = scanEventBoards();
+  if(!events.length) return null;
+  const active = events.some(e => e.key === 'gameweek-v1') ? 'gameweek-v1' : events[0].key;
+  const ix = { active, events };
+  saveEventsIndex(ix);
+  return ix;
 }
 function saveEventsIndex(ix){
   try { localStorage.setItem(EVENTS_KEY, JSON.stringify(ix)); } catch(e){}
+}
+/* Fallback when no index exists yet: adopt every board on the device, active
+   first — so even a deleted index can never hide a scoreboard. */
+function synthesizeIndex(){
+  const events = scanEventBoards();
+  if(!events.some(e => e.key === storageKey)) events.push({ key: storageKey, name: state && state.trip ? state.trip.name : 'Game Week' });
+  return { active: storageKey, events };
 }
 const APP_VERSION = '2.4 · players & events';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
@@ -497,6 +539,9 @@ function load(){
     }
   } else {
     state = freshState();
+    // an event whose key holds no data keeps its identity from the index
+    const entry = ix && ix.events.find(e => e.key === storageKey);
+    if(entry && entry.name) state.trip.name = entry.name;
   }
   seqCounter = state.matches.reduce((m, x) => Math.max(m, x.seq || 0), 0);
 }
@@ -519,7 +564,7 @@ function save(){
     }
     localStorage.setItem(storageKey, JSON.stringify(state));
     // keep the events index in step: the entry's name mirrors the trip name
-    const ix = eventsIndex() || { active: storageKey, events: [{ key: storageKey, name: state.trip.name }] };
+    const ix = eventsIndex() || synthesizeIndex();
     ix.active = storageKey;
     if(!ix.events.some(e => e.key === storageKey)) ix.events.push({ key: storageKey, name: state.trip.name });
     for(const e of ix.events) if(e.key === storageKey) e.name = state.trip.name;
@@ -555,7 +600,7 @@ function restoreSnapshot(){
 
 /* ---------- events: separate scoreboards under separate keys ---------- */
 function currentEventsIndex(){
-  return eventsIndex() || { active: storageKey, events: [{ key: storageKey, name: state.trip.name }] };
+  return eventsIndex() || synthesizeIndex();
 }
 function eventSummary(key){
   if(key === storageKey) return { players: state.players.length, matches: state.matches.length };
@@ -566,11 +611,18 @@ function eventSummary(key){
 }
 function createEvent(name, bringPlayers){
   save();                                  // settle the current board first
-  const ix = currentEventsIndex();
   const key = 'gameweek-ev-' + uid();
   const fresh = freshState();
   fresh.trip.name = name;
   if(bringPlayers) fresh.players = state.players.map(p => ({ ...p }));
+  // the new BOARD must exist before the index may point at it — an index
+  // aimed at an empty key would boot the app into a blank scoreboard
+  try { localStorage.setItem(key, JSON.stringify(fresh)); }
+  catch(e){
+    toast('Not enough room on this device — export a backup from Settings, then try again.');
+    return false;
+  }
+  const ix = currentEventsIndex();
   ix.events.push({ key, name });
   ix.active = key;
   saveEventsIndex(ix);
@@ -578,6 +630,7 @@ function createEvent(name, bringPlayers){
   state = fresh;
   seqCounter = 0;
   save(); renderAll();
+  return true;
 }
 function switchEvent(key){
   const ix = currentEventsIndex();
@@ -995,7 +1048,10 @@ function renderHome(){
       enterEvent(card.dataset.evopen);
     };
     card.addEventListener('click', open);
-    card.addEventListener('keydown', ev => { if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); open(ev); } });
+    card.addEventListener('keydown', ev => {
+      if(ev.target.closest('[data-evdel]')) return;   // the Delete button keeps its native key handling
+      if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); open(ev); }
+    });
   });
   $$('#view-events [data-evdel]').forEach(b => armButton(b, 'Really delete?', () => {
     deleteEvent(b.dataset.evdel);
@@ -1014,7 +1070,7 @@ function renderHome(){
   const create = () => {
     const name = $('#neName').value.trim();
     if(!name){ toast('Give the event a name first.'); return; }
-    createEvent(name.slice(0,60), $('#neBring').checked);
+    if(!createEvent(name.slice(0,60), $('#neBring').checked)) return;
     showEvent();
     toast('New scoreboard — have a great ' + state.trip.name + '!');
   };
@@ -2344,7 +2400,8 @@ function renderPlayers(){
   }
   html += state.players.map(p => {
     const st = byId.get(p.id);
-    return '<div class="player-row" style="--pc:' + slotVar(p) + '" data-pcard="' + esc(p.id) + '">' +
+    return '<div class="player-row" style="--pc:' + slotVar(p) + '" data-pcard="' + esc(p.id) + '" ' +
+      'role="button" tabindex="0" aria-label="Details for ' + esc(p.name) + '">' +
       meeple(p) +
       '<div class="pinfo"><div class="nm">' + esc(p.name) + '</div>' +
       '<div class="sub">' + fmtNum(st.pts) + ' pts · ' + st.wins + ' ' + (st.wins === 1 ? 'win' : 'wins') + ' · ' + st.played + ' ' + (st.played === 1 ? 'game' : 'games') + '</div></div>' +
@@ -2382,10 +2439,17 @@ function renderPlayers(){
     $('#npName').addEventListener('keydown', e => { if(e.key === 'Enter') add(); });
   }
   $$('#view-players [data-editp]').forEach(b => b.addEventListener('click', () => openPlayerSheet(b.dataset.editp)));
-  $$('#view-players [data-pcard]').forEach(el => el.addEventListener('click', e => {
-    if(e.target.closest('[data-editp]')) return;
-    openPlayerCard(el.dataset.pcard);
-  }));
+  $$('#view-players [data-pcard]').forEach(el => {
+    const open = e => {
+      if(e.target.closest('[data-editp]')) return;
+      openPlayerCard(el.dataset.pcard);
+    };
+    el.addEventListener('click', open);
+    el.addEventListener('keydown', e => {
+      if(e.target.closest('[data-editp]')) return;
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(e); }
+    });
+  });
 }
 
 /* =====================================================================
@@ -2848,6 +2912,8 @@ function saveMatch(){
 /* ---------- player sheet ---------- */
 /* ---------- player detail card: one player's whole week ---------- */
 function openPlayerCard(pid){
+  // never clobber a half-entered game — warn first, same as closing the sheet
+  if(sheetDirtyCheck && sheetDirtyCheck()){ requestCloseSheet(); return; }
   const p = playerById(pid);
   if(!p) return;
   const ms = orderedMatches();
@@ -2886,9 +2952,9 @@ function openPlayerCard(pid){
     if(edge < 0 && (!krypt || edge < krypt.edge)) krypt = { oid, edge, ...v };
   }
 
-  // best single win, signature game, best day
+  // best single win (an actual win — a fat 2nd place doesn't count), signature game, best day
   let bestWin = null;
-  for(const t of timeline) if(t.pts > 0 && (!bestWin || t.pts > bestWin.pts)) bestWin = t;
+  for(const t of timeline) if(t.r.rank === 1 && t.pts > 0 && (!bestWin || t.pts > bestWin.pts)) bestWin = t;
   const byGame = new Map();
   for(const t of timeline){
     const k = t.m.game.toLowerCase();
@@ -2898,7 +2964,7 @@ function openPlayerCard(pid){
     if(t.r.rank === 1) g.wins++;
   }
   let sig = null;
-  for(const g of byGame.values()) if(g.n >= 2 && (!sig || g.sum / g.n > sig.sum / sig.n)) sig = g;
+  for(const g of byGame.values()) if(g.n >= 2 && g.sum > 0 && (!sig || g.sum / g.n > sig.sum / sig.n)) sig = g;
   const byDay = new Map();
   for(const t of timeline) byDay.set(t.m.date, (byDay.get(t.m.date) || 0) + t.pts);
   const bestDay = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -3227,7 +3293,11 @@ function switchTab(tab){
 $$('.tabbar .tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 $('#btnLog').addEventListener('click', () => openLogSheet(null));
 $('#btnSettings').addEventListener('click', openSettingsSheet);
-$('#btnHome').addEventListener('click', showHome);
+$('#btnHome').addEventListener('click', () => {
+  // a half-entered game gets the same two-tap warning as every other exit
+  if(sheetDirtyCheck && sheetDirtyCheck()){ requestCloseSheet(); return; }
+  showHome();
+});
 $('#sheetBack').addEventListener('click', requestCloseSheet);
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && $('#sheetHost').classList.contains('open')) requestCloseSheet();
