@@ -49,6 +49,8 @@
 /* ---------- base ---------- */
 *{box-sizing:border-box}
 html,body{margin:0}
+/* the hidden attribute must always win, even over display:flex/grid rules */
+[hidden]{display:none !important}
 body{
   background:var(--page); color:var(--ink);
   font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -88,6 +90,8 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 
 /* ---------- standings ---------- */
 .standing{display:grid; grid-template-columns:22px 42px minmax(0,1fr) auto; gap:0 12px; align-items:center; padding:10px 0}
+.standing[data-pcard]{cursor:pointer}
+.player-row[data-pcard]{cursor:pointer}
 .standing + .standing{border-top:1px solid var(--grid)}
 .standing .rank{font-size:14px; font-weight:700; color:var(--muted); text-align:center}
 .standing .who{min-width:0}
@@ -108,6 +112,37 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 .mavatar .crown{position:absolute; top:-9px; left:50%; transform:translateX(-50%) rotate(-8deg); width:18px; height:13px}
 .mdot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--pc); flex:none}
 .pdot{display:inline-block; width:13px; height:13px; flex:none; vertical-align:-2px}
+
+/* ---------- events home ---------- */
+.ev-card{display:flex; align-items:center; gap:12px; cursor:pointer}
+.ev-card:active{background:var(--wash)}
+.ev-info{min-width:0; flex:1}
+.ev-name{font-weight:700; font-size:16.5px; display:flex; align-items:center; gap:8px; min-width:0}
+.ev-name span.nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ev-badge{flex:none; font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  border:1px solid var(--grid); border-radius:999px; padding:1px 7px; color:var(--ink2); vertical-align:1px}
+.ev-badge.live{color:var(--good); border-color:var(--good)}
+.ev-sub{font-size:12.5px; color:var(--muted); margin-top:3px}
+.ev-go{margin-left:auto; flex:none; color:var(--muted); font-size:22px; line-height:1}
+
+/* ---------- player detail card ---------- */
+.pc-tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:4px 0 14px}
+.pc-tile{border:1px solid var(--grid); border-radius:12px; padding:10px 12px; min-width:0}
+.pc-tile .t-label{font-size:11.5px; color:var(--muted)}
+.pc-tile .t-value{font-size:19px; font-weight:650; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pc-tile .t-value small{font-size:12px; font-weight:400; color:var(--muted)}
+.pc-row{display:flex; align-items:center; gap:10px; padding:9px 0; font-size:14.5px; min-width:0}
+.pc-row + .pc-row{border-top:1px solid var(--grid)}
+.pc-row .rname{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink2)}
+.pc-row b{margin-left:auto; flex:none; font-variant-numeric:tabular-nums; font-weight:650}
+.form-strip{display:flex; gap:6px; flex-wrap:wrap; margin:2px 0 6px}
+.form-chip{font-size:12px; border:1px solid var(--grid); border-radius:8px; padding:4px 9px; color:var(--ink2); max-width:130px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.form-chip.w{border-color:var(--pc); color:var(--ink); background:color-mix(in srgb, var(--pc) 14%, var(--card))}
+.pc-spark{margin:4px 0 2px}
+.pc-spark svg{display:block}
+.pc-spark text{font:10.5px system-ui,sans-serif; font-variant-numeric:tabular-nums}
+.pc-label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:700; margin:14px 0 4px}
 
 /* ---------- player look pickers ---------- */
 .swatches{display:flex; flex-wrap:wrap; gap:9px}
@@ -317,6 +352,9 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
     <symbol id="i-x" viewBox="0 0 24 24">
       <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
     </symbol>
+    <symbol id="i-back" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M14.5 5.5 8 12l6.5 6.5"/>
+    </symbol>
     <symbol id="i-spark" viewBox="0 0 24 24">
       <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
         d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9L11 3Zm8 10l.8 2.2L22 16l-2.2.8L19 19l-.8-2.2L16 16l2.2-.8L19 13Z"/>
@@ -326,12 +364,14 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
 
 <div class="shell">
   <header class="app-head">
+    <button class="gear" id="btnHome" aria-label="All events"><svg><use href="#i-back"/></svg></button>
     <h1 id="tripName">Game Week</h1>
     <span class="day-chip" id="dayChip">Day 1</span>
     <button class="gear" id="btnSettings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
   </header>
 
   <main>
+    <section id="view-events" aria-label="Events" hidden></section>
     <section id="view-standings" aria-label="Standings"></section>
     <section id="view-history" aria-label="History" hidden></section>
     <section id="view-players" aria-label="Players" hidden></section>
@@ -362,11 +402,39 @@ h1,h2,h3{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-se
    placements and a game weight; points are recomputed on every render.
 ===================================================================== */
 
-const STORAGE_KEY = 'gameweek-v1';
-const SNAP_KEY = 'gameweek-v1-yesterday';   // rolling previous-day snapshot
-const SNAP_DAY_KEY = 'gameweek-v1-snapday';
-const BROKEN_KEY = 'gameweek-v1-broken';    // unreadable data is preserved, never discarded
-const APP_VERSION = '2.3 · pick your piece';
+/* Every event (this trip, next Christmas, …) keeps its own scoreboard under
+   its own storage key. The original board stays at 'gameweek-v1' forever —
+   migrating to events never moves or rewrites its bytes. */
+const EVENTS_KEY = 'gameweek-events';
+const EVENT_KEY_RE = /^gameweek-(v1|ev-[A-Za-z0-9_-]{1,40})$/;
+let storageKey = 'gameweek-v1';
+const snapKey = () => storageKey + '-yesterday';   // rolling previous-day snapshot
+const snapDayKey = () => storageKey + '-snapday';
+const brokenKey = () => storageKey + '-broken';    // unreadable data is preserved, never discarded
+
+/* The index lists every event; entry names mirror each board's trip name.
+   Returns null when absent or unusable (first run, or pre-events install). */
+function eventsIndex(){
+  try {
+    const raw = localStorage.getItem(EVENTS_KEY);
+    if(!raw) return null;
+    const ix = JSON.parse(raw);
+    if(!ix || !Array.isArray(ix.events)) return null;
+    const events = ix.events
+      .filter(e => e && typeof e.key === 'string' && EVENT_KEY_RE.test(e.key))
+      .map(e => ({ key: e.key, name: (typeof e.name === 'string' && e.name.trim()) ? e.name.trim().slice(0,60) : 'Game Week' }));
+    // one entry per key, and the active key must be listed
+    const seen = new Set();
+    const clean = events.filter(e => !seen.has(e.key) && seen.add(e.key));
+    if(!clean.length) return null;
+    const active = (typeof ix.active === 'string' && clean.some(e => e.key === ix.active)) ? ix.active : clean[0].key;
+    return { active, events: clean };
+  } catch(e){ return null; }
+}
+function saveEventsIndex(ix){
+  try { localStorage.setItem(EVENTS_KEY, JSON.stringify(ix)); } catch(e){}
+}
+const APP_VERSION = '2.4 · players & events';
 const INSTALL_URL = 'https://marastefanic-cmd.github.io/alzatask/';
 /* No hard player cap anymore: identity is colour × pattern × shape (162 combos),
    so it no longer runs out at nine hues. 99 is a sanity bound for imports. */
@@ -409,8 +477,10 @@ function freshState(){
 }
 
 function load(){
+  const ix = eventsIndex();
+  if(ix) storageKey = ix.active;
   let raw = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); }
+  try { raw = localStorage.getItem(storageKey); }
   catch(e){ storageOk = false; }
   if(raw){
     try {
@@ -419,11 +489,11 @@ function load(){
       if(next){ state = next; }
       else {
         state = freshState();
-        try { localStorage.setItem(BROKEN_KEY, raw); } catch(e){}
+        try { localStorage.setItem(brokenKey(), raw); } catch(e){}
       }
     } catch(e){
       state = freshState();
-      try { localStorage.setItem(BROKEN_KEY, raw); } catch(e2){}
+      try { localStorage.setItem(brokenKey(), raw); } catch(e2){}
     }
   } else {
     state = freshState();
@@ -435,19 +505,25 @@ function save(){
   if(!storageOk) return;
   try {
     // once per day, keep the previous day's final state as a restorable snapshot
-    const prev = localStorage.getItem(STORAGE_KEY);
-    if(prev && localStorage.getItem(SNAP_DAY_KEY) !== todayStr()){
+    const prev = localStorage.getItem(storageKey);
+    if(prev && localStorage.getItem(snapDayKey()) !== todayStr()){
       let meaningful = false;
       try {
         const p = JSON.parse(prev);
         meaningful = !!((p.players && p.players.length) || (p.matches && p.matches.length));
       } catch(e){}
       if(meaningful){
-        localStorage.setItem(SNAP_KEY, prev);
-        localStorage.setItem(SNAP_DAY_KEY, todayStr());
+        localStorage.setItem(snapKey(), prev);
+        localStorage.setItem(snapDayKey(), todayStr());
       }
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    // keep the events index in step: the entry's name mirrors the trip name
+    const ix = eventsIndex() || { active: storageKey, events: [{ key: storageKey, name: state.trip.name }] };
+    ix.active = storageKey;
+    if(!ix.events.some(e => e.key === storageKey)) ix.events.push({ key: storageKey, name: state.trip.name });
+    for(const e of ix.events) if(e.key === storageKey) e.name = state.trip.name;
+    saveEventsIndex(ix);
   }
   catch(e){
     storageOk = false;
@@ -457,7 +533,7 @@ function save(){
 
 /* A usable board from the previous-day snapshot or preserved broken data, if any. */
 function recoverySnapshot(){
-  for(const key of [SNAP_KEY, BROKEN_KEY]){
+  for(const key of [snapKey(), brokenKey()]){
     try {
       const raw = localStorage.getItem(key);
       if(!raw) continue;
@@ -477,6 +553,50 @@ function restoreSnapshot(){
   toast('Restored — ' + state.players.length + ' players, ' + state.matches.length + ' games.');
 }
 
+/* ---------- events: separate scoreboards under separate keys ---------- */
+function currentEventsIndex(){
+  return eventsIndex() || { active: storageKey, events: [{ key: storageKey, name: state.trip.name }] };
+}
+function eventSummary(key){
+  if(key === storageKey) return { players: state.players.length, matches: state.matches.length };
+  try {
+    const p = JSON.parse(localStorage.getItem(key));
+    return { players: Array.isArray(p.players) ? p.players.length : 0, matches: Array.isArray(p.matches) ? p.matches.length : 0 };
+  } catch(e){ return { players: 0, matches: 0 }; }
+}
+function createEvent(name, bringPlayers){
+  save();                                  // settle the current board first
+  const ix = currentEventsIndex();
+  const key = 'gameweek-ev-' + uid();
+  const fresh = freshState();
+  fresh.trip.name = name;
+  if(bringPlayers) fresh.players = state.players.map(p => ({ ...p }));
+  ix.events.push({ key, name });
+  ix.active = key;
+  saveEventsIndex(ix);
+  storageKey = key;
+  state = fresh;
+  seqCounter = 0;
+  save(); renderAll();
+}
+function switchEvent(key){
+  const ix = currentEventsIndex();
+  if(key === storageKey || !ix.events.some(e => e.key === key)) return;
+  save();
+  ix.active = key;
+  saveEventsIndex(ix);
+  load(); renderAll();
+}
+function deleteEvent(key){
+  if(key === storageKey) return;           // the open board can't delete itself
+  const ix = currentEventsIndex();
+  ix.events = ix.events.filter(e => e.key !== key);
+  saveEventsIndex(ix);
+  try {
+    for(const k of [key, key + '-yesterday', key + '-snapday', key + '-broken']) localStorage.removeItem(k);
+  } catch(e){}
+}
+
 /* Validate an unknown parsed object into app state; returns null if unusable. */
 function sanitizeState(o){
   if(!o || typeof o !== 'object') return null;
@@ -484,6 +604,7 @@ function sanitizeState(o){
   if(o.trip && typeof o.trip === 'object'){
     if(typeof o.trip.name === 'string' && o.trip.name.trim()) s.trip.name = o.trip.name.trim().slice(0,60);
     if(typeof o.trip.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.trip.start)) s.trip.start = o.trip.start;
+    if(typeof o.trip.ended === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.trip.ended)) s.trip.ended = o.trip.ended;
   }
   const usedSlots = new Set();
   // Ids from a foreign file are untrusted: anything outside a safe charset is
@@ -765,8 +886,10 @@ function confetti(){
    RENDERING
 ===================================================================== */
 let activeTab = 'standings';
+let atHome = false;
 
 function renderAll(){
+  if(atHome){ renderHome(); return; }
   renderHead();
   renderStandings();
   renderHistory();
@@ -775,10 +898,137 @@ function renderAll(){
   $('#btnLog').disabled = state.players.length < 2;
 }
 
+/* ---------- events home: one card per scoreboard, past and present ---------- */
+/* Final champion of a (non-active) event's parsed board. */
+function topOf(st){
+  let best = null;
+  for(const p of st.players){
+    const entries = [];
+    for(const m of st.matches) for(const r of m.results)
+      if(r.playerId === p.id) entries.push({ pts: pointsFor(r, m), win: r.rank === 1 });
+    if(!entries.length) continue;
+    const rating = forgivingAvg(entries);
+    if(!best || rating > best.rating) best = { p, rating };
+  }
+  return best && best.rating > 0 ? best : null;
+}
+
+function showHome(){
+  atHome = true;
+  closeSheet();
+  $('#view-events').hidden = false;
+  ['standings','history','players','highlights'].forEach(t => { $('#view-' + t).hidden = true; });
+  $('.tabbar') && ($('.tabbar').hidden = true);
+  $('#dayChip').hidden = true;
+  $('#btnSettings').hidden = true;
+  $('#btnHome').hidden = true;
+  $('#tripName').textContent = 'Game Week';
+  renderHome();
+}
+
+function showEvent(){
+  atHome = false;
+  $('#view-events').hidden = true;
+  $('.tabbar') && ($('.tabbar').hidden = false);
+  $('#dayChip').hidden = false;
+  $('#btnSettings').hidden = false;
+  $('#btnHome').hidden = false;
+  renderAll();
+  switchTab('standings');
+}
+
+function enterEvent(key){
+  if(key !== storageKey) switchEvent(key);
+  showEvent();
+}
+
+function renderHome(){
+  const host = $('#view-events');
+  const ix = currentEventsIndex();
+  let html = '<div class="card"><div class="card-h"><h2>Your events</h2></div>' +
+    '<p class="card-sub">Every event is its own scoreboard — players, games, and the highlight reel. ' +
+    'Old ones stay saved for the memories.</p></div>';
+
+  html += ix.events.map(e => {
+    const active = e.key === storageKey;
+    let st = active ? state : null;
+    if(!st){
+      try { st = sanitizeState(JSON.parse(localStorage.getItem(e.key))); } catch(err){}
+    }
+    const nP = st ? st.players.length : 0, nM = st ? st.matches.length : 0;
+    const champ = st ? topOf(st) : null;
+    const ended = st && st.trip.ended;
+    const badge = ended
+      ? '<span class="ev-badge">ended</span>'
+      : (active ? '<span class="ev-badge live">live</span>' : '');
+    return '<div class="card ev-card" role="button" tabindex="0" data-evopen="' + esc(e.key) + '" ' +
+      'aria-label="Open ' + esc(e.name) + '">' +
+      (champ ? meeple(champ.p, { crown: true }) :
+        '<span class="mavatar" style="--pc:var(--grid)"><svg class="meeple"><use href="#i-sh-meeple"/></svg></span>') +
+      '<div class="ev-info"><div class="ev-name"><span class="nm">' + esc(e.name) + '</span></div>' +
+      '<div class="ev-sub">' + badge + (badge ? ' ' : '') + nP + ' players · ' + nM + ' games' +
+      (champ ? ' · ' + (ended ? 'champion: ' : 'on top: ') + esc(champ.p.name) : '') + '</div></div>' +
+      (active
+        ? '<span class="ev-go">›</span>'
+        : '<button class="btn ghost small" data-evdel="' + esc(e.key) + '">Delete</button>') +
+    '</div>';
+  }).join('');
+
+  html += '<div class="card">' +
+    '<div id="evNewForm" hidden>' +
+      '<div class="field"><label for="neName">What are you playing next?</label>' +
+      '<input class="tin" id="neName" maxlength="60" placeholder="Christmas Games, Cottage Weekend…"></div>' +
+      '<label style="display:flex; align-items:center; gap:9px; margin:2px 0 14px; font-size:14.5px">' +
+        '<input type="checkbox" id="neBring" checked> Bring the current crew along</label>' +
+      '<div style="display:flex; gap:10px">' +
+        '<button class="btn" id="neCreate">Create &amp; open</button>' +
+        '<button class="btn ghost" id="neCancel">Cancel</button></div>' +
+    '</div>' +
+    '<button class="btn" id="evNew" style="width:100%">New event</button>' +
+  '</div>';
+
+  host.innerHTML = html;
+
+  $$('#view-events [data-evopen]').forEach(card => {
+    const open = ev => {
+      if(ev.target.closest('[data-evdel]')) return;
+      enterEvent(card.dataset.evopen);
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', ev => { if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); open(ev); } });
+  });
+  $$('#view-events [data-evdel]').forEach(b => armButton(b, 'Really delete?', () => {
+    deleteEvent(b.dataset.evdel);
+    renderHome();
+    toast('Event deleted.');
+  }));
+  $('#evNew').addEventListener('click', () => {
+    $('#evNewForm').hidden = false;
+    $('#evNew').hidden = true;
+    $('#neName').focus();
+  });
+  $('#neCancel').addEventListener('click', () => {
+    $('#evNewForm').hidden = true;
+    $('#evNew').hidden = false;
+  });
+  const create = () => {
+    const name = $('#neName').value.trim();
+    if(!name){ toast('Give the event a name first.'); return; }
+    createEvent(name.slice(0,60), $('#neBring').checked);
+    showEvent();
+    toast('New scoreboard — have a great ' + state.trip.name + '!');
+  };
+  $('#neCreate').addEventListener('click', create);
+  $('#neName').addEventListener('keydown', e => { if(e.key === 'Enter') create(); });
+}
+
 function renderHead(){
   $('#tripName').textContent = state.trip.name;
-  const n = Math.max(1, tripDayOf(todayStr()));
-  $('#dayChip').textContent = 'Day ' + n;
+  if(state.trip.ended){
+    $('#dayChip').textContent = 'Final';
+  } else {
+    $('#dayChip').textContent = 'Day ' + Math.max(1, tripDayOf(todayStr()));
+  }
 }
 
 /* ---------- standings view ---------- */
@@ -830,7 +1080,8 @@ function renderStandings(){
   }
   html += rows.map(r => {
     const isLead = leaders.includes(r.p.id);
-    return '<div class="standing' + (isLead ? ' lead' : '') + patternClass(r.p) + '" style="--pc:' + slotVar(r.p) + '">' +
+    return '<div class="standing' + (isLead ? ' lead' : '') + patternClass(r.p) + '" style="--pc:' + slotVar(r.p) + '" ' +
+      'data-pcard="' + esc(r.p.id) + '" role="button" tabindex="0" aria-label="Details for ' + esc(r.p.name) + '">' +
       '<div class="rank">' + r.rank + '</div>' +
       meeple(r.p, {crown: isLead}) +
       '<div class="who"><div class="nm">' + esc(r.p.name) + '</div>' +
@@ -855,6 +1106,10 @@ function renderStandings(){
   }
 
   host.innerHTML = html;
+  $$('#view-standings [data-pcard]').forEach(el => {
+    el.addEventListener('click', () => openPlayerCard(el.dataset.pcard));
+    el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPlayerCard(el.dataset.pcard); } });
+  });
   if(ms.length >= 1 && state.players.length >= 2) renderRace();
 }
 
@@ -1822,7 +2077,7 @@ function computeHighlights(){
   }
 
   return {
-    meta: { day: Math.max(1, tripDayOf(todayStr())), games: ms.length, players: state.players.length },
+    meta: { day: Math.max(1, tripDayOf(state.trip.ended || todayStr())), games: ms.length, players: state.players.length },
     items
   };
 }
@@ -2089,7 +2344,7 @@ function renderPlayers(){
   }
   html += state.players.map(p => {
     const st = byId.get(p.id);
-    return '<div class="player-row" style="--pc:' + slotVar(p) + '">' +
+    return '<div class="player-row" style="--pc:' + slotVar(p) + '" data-pcard="' + esc(p.id) + '">' +
       meeple(p) +
       '<div class="pinfo"><div class="nm">' + esc(p.name) + '</div>' +
       '<div class="sub">' + fmtNum(st.pts) + ' pts · ' + st.wins + ' ' + (st.wins === 1 ? 'win' : 'wins') + ' · ' + st.played + ' ' + (st.played === 1 ? 'game' : 'games') + '</div></div>' +
@@ -2127,6 +2382,10 @@ function renderPlayers(){
     $('#npName').addEventListener('keydown', e => { if(e.key === 'Enter') add(); });
   }
   $$('#view-players [data-editp]').forEach(b => b.addEventListener('click', () => openPlayerSheet(b.dataset.editp)));
+  $$('#view-players [data-pcard]').forEach(el => el.addEventListener('click', e => {
+    if(e.target.closest('[data-editp]')) return;
+    openPlayerCard(el.dataset.pcard);
+  }));
 }
 
 /* =====================================================================
@@ -2587,6 +2846,129 @@ function saveMatch(){
 }
 
 /* ---------- player sheet ---------- */
+/* ---------- player detail card: one player's whole week ---------- */
+function openPlayerCard(pid){
+  const p = playerById(pid);
+  if(!p) return;
+  const ms = orderedMatches();
+  const row = standings().find(r => r.p.id === pid);
+
+  // this player's timeline, rating after each of their games
+  const entries = [];
+  const timeline = [];
+  for(const m of ms){
+    const r = m.results.find(x => x.playerId === pid);
+    if(!r) continue;
+    const pts = pointsFor(r, m);
+    entries.push({ pts, win: r.rank === 1 });
+    timeline.push({ m, r, pts, rating: forgivingAvg(entries) });
+  }
+
+  // head-to-head edges: finishes ahead / behind per opponent
+  const vs = new Map();
+  for(const m of ms){
+    const mine = m.results.find(x => x.playerId === pid);
+    if(!mine) continue;
+    for(const o of m.results){
+      if(o.playerId === pid) continue;
+      if(!vs.has(o.playerId)) vs.set(o.playerId, { met: 0, ahead: 0, behind: 0 });
+      const v = vs.get(o.playerId);
+      v.met++;
+      if(mine.rank != null && (o.rank == null || o.rank > mine.rank)) v.ahead++;
+      else if(o.rank != null && (mine.rank == null || mine.rank > o.rank)) v.behind++;
+    }
+  }
+  let owns = null, krypt = null;
+  for(const [oid, v] of vs){
+    if(v.met < 3 || !playerById(oid)) continue;
+    const edge = v.ahead - v.behind;
+    if(edge > 0 && (!owns || edge > owns.edge)) owns = { oid, edge, ...v };
+    if(edge < 0 && (!krypt || edge < krypt.edge)) krypt = { oid, edge, ...v };
+  }
+
+  // best single win, signature game, best day
+  let bestWin = null;
+  for(const t of timeline) if(t.pts > 0 && (!bestWin || t.pts > bestWin.pts)) bestWin = t;
+  const byGame = new Map();
+  for(const t of timeline){
+    const k = t.m.game.toLowerCase();
+    if(!byGame.has(k)) byGame.set(k, { game: t.m.game, n: 0, sum: 0, wins: 0 });
+    const g = byGame.get(k);
+    g.n++; g.sum += t.pts;
+    if(t.r.rank === 1) g.wins++;
+  }
+  let sig = null;
+  for(const g of byGame.values()) if(g.n >= 2 && (!sig || g.sum / g.n > sig.sum / sig.n)) sig = g;
+  const byDay = new Map();
+  for(const t of timeline) byDay.set(t.m.date, (byDay.get(t.m.date) || 0) + t.pts);
+  const bestDay = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
+
+  const rows = [];
+  if(bestWin) rows.push({ label: 'Best win · ' + bestWin.m.game + ', ' + fmtDate(bestWin.m.date, { weekday: 'short' }), value: '+' + fmtNum(bestWin.pts) });
+  if(sig) rows.push({ label: 'Signature game · ' + sig.game, value: fmtRating(sig.sum / sig.n) + '/game' });
+  if(bestDay && bestDay[1] > 0) rows.push({ label: 'Best day · ' + fmtDate(bestDay[0], { weekday: 'long' }), value: '+' + fmtNum(bestDay[1]) });
+  if(owns){ const o = playerById(owns.oid); rows.push({ pid: o.id, label: 'Owns ' + o.name, value: owns.ahead + ':' + owns.behind }); }
+  if(krypt){ const o = playerById(krypt.oid); rows.push({ pid: o.id, label: 'Kryptonite · ' + o.name, value: krypt.ahead + ':' + krypt.behind }); }
+
+  const winRate = timeline.length ? Math.round((row ? row.wins : 0) / timeline.length * 100) : 0;
+  const form = timeline.slice(-6);
+
+  openSheet(
+    '<div class="sh-head">' + meeple(p, { crown: row && row.rank === 1 && row.rating > 0 }) +
+      '<h2>' + esc(p.name) + '</h2>' +
+      '<button class="close" id="shClose" aria-label="Close"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>' +
+    '<div class="pc-tiles">' +
+      '<div class="pc-tile"><div class="t-label">Rating</div><div class="t-value">' + (row ? fmtRating(row.rating) : '—') +
+        (row ? ' <small>#' + row.rank + '</small>' : '') + '</div></div>' +
+      '<div class="pc-tile"><div class="t-label">Wins</div><div class="t-value">' + (row ? row.wins : 0) + '<small>/' + timeline.length + ' games</small></div></div>' +
+      '<div class="pc-tile"><div class="t-label">Win rate</div><div class="t-value">' + winRate + '<small>%</small></div></div>' +
+    '</div>' +
+    (timeline.length >= 2
+      ? '<div class="pc-label">Rating, game by game</div><div class="pc-spark" id="pcSpark" style="--pc:' + slotVar(p) + '"></div>'
+      : '') +
+    (form.length
+      ? '<div class="pc-label">Recent games</div><div class="form-strip" style="--pc:' + slotVar(p) + '">' +
+        form.map(t => '<span class="form-chip' + (t.r.rank === 1 ? ' w' : '') + '">' + esc(t.m.game) +
+          ' ' + (t.pts > 0 ? '+' + fmtNum(t.pts) : '·') + '</span>').join('') + '</div>'
+      : '<p class="hint">No games yet — the story starts with the first log.</p>') +
+    (rows.length
+      ? '<div class="pc-label">The file</div>' +
+        rows.map(r => '<div class="pc-row">' + (r.pid ? pieceDot(playerById(r.pid)) : '') +
+          '<span class="rname">' + esc(r.label) + '</span><b>' + esc(r.value) + '</b></div>').join('')
+      : '') +
+    '<div class="foot"><button class="btn ghost" id="pcEdit">Edit player</button>' +
+      '<button class="btn" id="pcDone">Done</button></div>'
+  );
+  $('#shClose').addEventListener('click', closeSheet);
+  $('#pcDone').addEventListener('click', closeSheet);
+  $('#pcEdit').addEventListener('click', () => openPlayerSheet(pid));
+
+  // sparkline: this player's line, drawn like the race chart draws it
+  const spark = $('#pcSpark');
+  if(spark){
+    const W = Math.max(spark.clientWidth || 480, 240), H = 120;
+    const padL = 34, padR = 12, padT = 10, padB = 8;
+    const pts = [0].concat(timeline.map(t => t.rating));
+    const N = pts.length - 1;
+    const yTicks = niceTicks(Math.max(...pts, 0.1));
+    const yMax = yTicks[yTicks.length - 1];
+    const X = i => padL + (W - padL - padR) * (i / N);
+    const Y = v => padT + (H - padT - padB) * (1 - v / yMax);
+    let g = '';
+    for(const t of yTicks){
+      g += '<line x1="' + padL + '" y1="' + Y(t) + '" x2="' + (W - padR) + '" y2="' + Y(t) + '" stroke="var(--grid)" stroke-width="1"/>';
+      g += '<text x="' + (padL - 7) + '" y="' + (Y(t) + 3.5) + '" text-anchor="end" fill="var(--muted)">' + t + '</text>';
+    }
+    const d = pts.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
+    const dashPat = lineDash(p);
+    g += '<path d="' + d + '" fill="none" stroke="var(--pc)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"' +
+      (dashPat ? ' stroke-dasharray="' + dashPat + '"' : '') + '/>';
+    g += '<circle cx="' + X(N).toFixed(1) + '" cy="' + Y(pts[N]).toFixed(1) + '" r="4" fill="var(--pc)" stroke="var(--card)" stroke-width="2"/>';
+    spark.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" ' +
+      'aria-label="' + esc(p.name) + ' rating after each game">' + g + '</svg>';
+  }
+}
+
 function openPlayerSheet(pid){
   const p = playerById(pid);
   if(!p) return;
@@ -2709,6 +3091,17 @@ function openSettingsSheet(){
       '<p class="hint" style="margin-top:8px">Everything lives on this phone. One of you is the scorekeeper — export a backup now and then, or to hand the scoreboard to another phone. ' +
       'The app also keeps an automatic snapshot from the previous day, offered on the first screen if the board ever comes up empty.</p></div>' +
 
+    '<div class="field"><label>This event</label>' +
+      (state.trip.ended
+        ? '<button class="btn ghost small" id="sEnd">Reopen this event</button>' +
+          '<p class="hint" style="margin-top:8px">Ended ' + fmtDate(state.trip.ended) + ' — it lives on the events screen ' +
+          'as a memory. Reopen it to keep logging games.</p>'
+        : '<button class="btn ghost small" id="sEnd">End this event…</button>' +
+          '<p class="hint" style="margin-top:8px">Crowns the champion and files the scoreboard as a memory on the events ' +
+          'screen (the ‹ button up top). Nothing is deleted — you can browse or reopen it any time, and start the next ' +
+          'event from there.</p>') +
+      '</div>' +
+
     '<div class="field"><label>Danger zone</label>' +
       '<button class="btn ghost small" id="sReset">Start over…</button></div>' +
 
@@ -2731,6 +3124,21 @@ function openSettingsSheet(){
   $('#sImport').addEventListener('click', () => $('#sFile').click());
   $('#sFile').addEventListener('change', importData);
   $('#sUpdate').addEventListener('click', checkForUpdates);
+
+  if(state.trip.ended){
+    $('#sEnd').addEventListener('click', () => {
+      delete state.trip.ended;
+      save(); closeSheet(); renderAll();
+      toast('Welcome back — ' + state.trip.name + ' is live again.');
+    });
+  } else {
+    armButton($('#sEnd'), 'End it — crown the champion?', () => {
+      state.trip.ended = todayStr();
+      save(); closeSheet();
+      showHome();
+      toast(state.trip.name + ' is a wrap. Start the next one whenever.');
+    });
+  }
 
   armButton($('#sReset'), 'Really erase everything?', () => {
     state = freshState();
@@ -2819,6 +3227,7 @@ function switchTab(tab){
 $$('.tabbar .tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 $('#btnLog').addEventListener('click', () => openLogSheet(null));
 $('#btnSettings').addEventListener('click', openSettingsSheet);
+$('#btnHome').addEventListener('click', showHome);
 $('#sheetBack').addEventListener('click', requestCloseSheet);
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && $('#sheetHost').classList.contains('open')) requestCloseSheet();

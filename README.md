@@ -3,6 +3,15 @@
 A scoreboard for a week of board games with friends. Track every game — any game,
 any kind of score, any subset of players — and see who wins the vacation.
 
+- **Events** — the ‹ button opens the events screen: every trip or game night is
+  its own scoreboard with its own players, games, and highlight reel. End an
+  event to crown its champion and file it as a memory (nothing is deleted — old
+  boards stay browsable and can be reopened), then start the next one, optionally
+  bringing the same crew along.
+- **Player cards** — tap any standings row for one player's whole story: rating
+  game by game, recent form, best win, signature game, best day, who they own,
+  and who their kryptonite is.
+
 **Open `index.html` in any browser**, or better: open the GitHub Pages URL on your
 phone and use **Share → Add to Home Screen** — it installs as a full-screen app,
 works offline (service worker + manifest included), and your scoreboard lives on
